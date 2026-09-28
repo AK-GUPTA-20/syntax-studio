@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0B0F14;
+    color: #E8EDF2;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid #E8A33D;
+    outline-offset: 2px;
+  }
+}
+
+/* Dot Grid Background matching Akshat's portfolio */
+.dot-grid {
+  background-image: radial-gradient(circle, #26303F 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Smooth link underline animation */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0%;
+  height: 1.5px;
+  background: #E8A33D;
+  transition: width 0.25s ease;
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Card lift on hover */
+.hover-lift {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  border-color: rgba(95, 200, 200, 0.4) !important;
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5);
+}
+
+/* Glowing pulse rings */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 2px #0B0F14, 0 0 0 3px #5FC8C8, 0 0 14px rgba(95, 200, 200, 0.3); }
+  50%  { box-shadow: 0 0 0 2px #0B0F14, 0 0 0 3px #5FC8C8, 0 0 24px rgba(95, 200, 200, 0.5); }
+  100% { box-shadow: 0 0 0 2px #0B0F14, 0 0 0 3px #5FC8C8, 0 0 14px rgba(95, 200, 200, 0.3); }
+}
+.profile-pulse {
+  animation: pulse-ring 3.5s ease-in-out infinite;
+}
+
+/* Typewriter blinking cursor */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Thin custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F14;
+}
+::-webkit-scrollbar-thumb {
+  background: #26303F;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3B4B61;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
