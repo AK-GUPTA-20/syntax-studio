@@ -1,7 +1,5 @@
 import { FirestoreService } from '../services/firestoreService.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import { initialAgencySettings } from '../utils/seedData.js';
-
 import { config } from '../config/env.js';
 
 const settingsService = new FirestoreService('settings');
@@ -10,7 +8,16 @@ export const getSettings = async (req, res, next) => {
   try {
     let settings = await settingsService.getById('general');
     if (!settings) {
-      settings = await settingsService.create({ id: 'general', ...initialAgencySettings });
+      settings = await settingsService.create({
+        id: 'general',
+        studioName: 'Syntax Studio',
+        contactEmail: 'contact@syntaxstudio.dev',
+        workingHours: 'Mon - Fri: 9:00 AM - 7:00 PM IST',
+        promoCode: config.promoCode || 'syntaxStudio',
+        discountPercentage: config.discountPercentage || 10,
+        discountLabel: '10% Special Studio Discount',
+        promoActive: true,
+      });
     }
     // Ensure promo settings fallback if not yet stored in doc
     if (!settings.promoCode) {

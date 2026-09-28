@@ -3,14 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../config/env.js';
-import {
-  initialProjects,
-  initialTeamMembers,
-  initialServices,
-  initialTestimonials,
-  initialBlogPosts,
-  initialAgencySettings
-} from '../utils/seedData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -176,13 +168,13 @@ class MockFirestore {
         const parsed = JSON.parse(raw);
         console.log('💾 [Persistence] Loaded persistent database from firestore_data.json');
 
-        this.collections.set('projects', new MockCollectionRef(this, 'projects', parsed.projects || initialProjects));
-        this.collections.set('teamMembers', new MockCollectionRef(this, 'teamMembers', parsed.teamMembers || initialTeamMembers));
-        this.collections.set('services', new MockCollectionRef(this, 'services', parsed.services || initialServices));
-        this.collections.set('testimonials', new MockCollectionRef(this, 'testimonials', parsed.testimonials || initialTestimonials));
-        this.collections.set('blogPosts', new MockCollectionRef(this, 'blogPosts', parsed.blogPosts || initialBlogPosts));
+        this.collections.set('projects', new MockCollectionRef(this, 'projects', parsed.projects || []));
+        this.collections.set('teamMembers', new MockCollectionRef(this, 'teamMembers', parsed.teamMembers || []));
+        this.collections.set('services', new MockCollectionRef(this, 'services', parsed.services || []));
+        this.collections.set('testimonials', new MockCollectionRef(this, 'testimonials', parsed.testimonials || []));
+        this.collections.set('blogPosts', new MockCollectionRef(this, 'blogPosts', parsed.blogPosts || []));
         this.collections.set('contactMessages', new MockCollectionRef(this, 'contactMessages', parsed.contactMessages || []));
-        this.collections.set('settings', new MockCollectionRef(this, 'settings', parsed.settings || [{ id: 'general', ...initialAgencySettings }]));
+        this.collections.set('settings', new MockCollectionRef(this, 'settings', parsed.settings || [{ id: 'general' }]));
         return;
       }
     } catch (err) {
@@ -190,13 +182,13 @@ class MockFirestore {
     }
 
     // Default initialization
-    this.collections.set('projects', new MockCollectionRef(this, 'projects', initialProjects));
-    this.collections.set('teamMembers', new MockCollectionRef(this, 'teamMembers', initialTeamMembers));
-    this.collections.set('services', new MockCollectionRef(this, 'services', initialServices));
-    this.collections.set('testimonials', new MockCollectionRef(this, 'testimonials', initialTestimonials));
-    this.collections.set('blogPosts', new MockCollectionRef(this, 'blogPosts', initialBlogPosts));
+    this.collections.set('projects', new MockCollectionRef(this, 'projects', []));
+    this.collections.set('teamMembers', new MockCollectionRef(this, 'teamMembers', []));
+    this.collections.set('services', new MockCollectionRef(this, 'services', []));
+    this.collections.set('testimonials', new MockCollectionRef(this, 'testimonials', []));
+    this.collections.set('blogPosts', new MockCollectionRef(this, 'blogPosts', []));
     this.collections.set('contactMessages', new MockCollectionRef(this, 'contactMessages', []));
-    this.collections.set('settings', new MockCollectionRef(this, 'settings', [{ id: 'general', ...initialAgencySettings }]));
+    this.collections.set('settings', new MockCollectionRef(this, 'settings', [{ id: 'general' }]));
     this.persist();
   }
 

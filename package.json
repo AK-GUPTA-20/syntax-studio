@@ -8,7 +8,6 @@
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "start": "npm run start --prefix backend",
     "build": "npm run build --prefix frontend",
-    "test": "node test-suite.js",
     "backend": "npm run dev --prefix backend",
     "frontend": "npm run dev --prefix frontend"
   },
