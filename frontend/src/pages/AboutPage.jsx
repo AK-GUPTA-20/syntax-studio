@@ -53,10 +53,12 @@ export default function AboutPage() {
     : (displayedStats[0]?.value ? `${displayedStats[0].value} Solved` : "850+ Solutions");
 
   return (
-    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Ambient background glow */}
-      <div className="absolute top-24 left-1/3 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-80 right-10 w-96 h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-24 left-1/3 w-72 sm:w-96 h-72 sm:h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-80 right-4 sm:right-10 w-72 sm:w-96 h-72 sm:h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
 
       {/* Page Header */}
       <div className="max-w-4xl mb-16">
@@ -132,41 +134,41 @@ export default function AboutPage() {
         </div>
 
         {/* Right Info Box */}
-        <div className="lg:col-span-5 p-7 sm:p-8 rounded-2xl border border-border bg-surface/80 backdrop-blur-md space-y-6 shadow-xl">
+        <div className="lg:col-span-5 p-5 sm:p-8 rounded-2xl border border-border bg-surface/80 backdrop-blur-md space-y-6 shadow-xl">
           <div className="flex items-center gap-3 pb-4 border-b border-border">
-            <div className="w-11 h-11 rounded-xl bg-surface2 border border-border flex items-center justify-center text-amber shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-surface2 border border-border flex items-center justify-center text-amber shadow-sm shrink-0">
               <Terminal size={22} />
             </div>
-            <div>
-              <h3 className="font-display font-bold text-text text-base">{settings?.companyName || "Syntax Studio"}</h3>
-              <p className="text-xs font-mono text-muted">Est. {settings?.establishedYear || "2024"} • {settings?.location || "Uttar Pradesh, India"}</p>
+            <div className="min-w-0">
+              <h3 className="font-display font-bold text-text text-base truncate">{settings?.companyName || "Syntax Studio"}</h3>
+              <p className="text-xs font-mono text-muted truncate">Est. {settings?.establishedYear || "2024"} • {settings?.location || "Uttar Pradesh, India"}</p>
             </div>
           </div>
 
           <div className="space-y-3 font-mono text-xs text-muted">
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-cyan">Founders:</span>
-              <span className="text-text font-semibold">{foundersName}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/50 gap-1">
+              <span className="text-cyan shrink-0">Founders:</span>
+              <span className="text-text font-semibold sm:text-right">{foundersName}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-cyan">Core Technologies:</span>
-              <span className="text-text text-right font-medium">React, Vite, Node, Express, Firebase</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/50 gap-1">
+              <span className="text-cyan shrink-0">Core Technologies:</span>
+              <span className="text-text sm:text-right font-medium">React, Vite, Node, Express, Firebase</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-cyan">Academic Centers:</span>
-              <span className="text-text text-right">{settings?.academicCenters || "Galgotias Univ & ABES Eng College"}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/50 gap-1">
+              <span className="text-cyan shrink-0">Academic Centers:</span>
+              <span className="text-text sm:text-right">{settings?.academicCenters || "Galgotias Univ & ABES Eng College"}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-cyan">Problem Solving:</span>
-              <span className="text-amber font-bold">{problemSolvingStat}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/50 gap-1">
+              <span className="text-cyan shrink-0">Problem Solving:</span>
+              <span className="text-amber font-bold sm:text-right">{problemSolvingStat}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-border/50">
-              <span className="text-cyan">NDA Policy:</span>
-              <span className="text-green font-semibold">100% Protected & Signed</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border/50 gap-1">
+              <span className="text-cyan shrink-0">NDA Policy:</span>
+              <span className="text-green font-semibold sm:text-right">100% Protected & Signed</span>
             </div>
-            <div className="flex justify-between py-2">
-              <span className="text-cyan">Direct Email:</span>
-              <span className="text-text">{settings?.contactEmail || "guptaakshat7795@gmail.com"}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 gap-1">
+              <span className="text-cyan shrink-0">Direct Email:</span>
+              <span className="text-text break-all sm:text-right">{settings?.contactEmail || "guptaakshat7795@gmail.com"}</span>
             </div>
           </div>
 
@@ -220,7 +222,7 @@ export default function AboutPage() {
       )}
 
       {/* Meet Founders Profiles Section (Dynamic from team) */}
-      <section className="p-8 sm:p-12 rounded-2xl border border-border bg-gradient-to-br from-surface2/50 via-surface to-surface shadow-2xl space-y-8">
+      <section className="p-5 sm:p-8 lg:p-12 rounded-2xl border border-border bg-gradient-to-br from-surface2/50 via-surface to-surface shadow-2xl space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan mb-2">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Mail,
@@ -96,6 +96,11 @@ export default function ContactPage() {
   const [phoneVerifyingOtp, setPhoneVerifyingOtp] = useState(false);
   const [phoneError, setPhoneError] = useState(null);
   const [phoneTimer, setPhoneTimer] = useState(0);
+  const [recaptchaSolved, setRecaptchaSolved] = useState(false);
+
+  // Firebase pre-configured test phone numbers for instant friction-free testing
+  const FIREBASE_TEST_NUMBERS = ['+919876543210', '+919027278481', '+919999999999'];
+  const isFirebaseTestNumber = phoneValidation.isValid && FIREBASE_TEST_NUMBERS.includes(phoneValidation.e164);
 
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState('');
@@ -299,11 +304,20 @@ export default function ContactPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     // Reset verification states if phone or email is modified after being verified
-    if (name === 'phone' && isPhoneVerified) {
-      const check = validateIndianPhone(value);
-      if (!check.isValid || check.e164 !== verifiedPhone) {
-        setIsPhoneVerified(false);
+    if (name === 'phone') {
+      if (isPhoneVerified) {
+        const check = validateIndianPhone(value);
+        if (!check.isValid || check.e164 !== verifiedPhone) {
+          setIsPhoneVerified(false);
+        }
       }
+      if (phoneOtpSent) {
+        setPhoneOtpSent(false);
+        setPhoneConfirmationResult(null);
+        setPhoneOtp('');
+      }
+      setRecaptchaSolved(false);
+      setPhoneError(null);
     }
     if (name === 'email' && isEmailVerified) {
       if (value.trim().toLowerCase() !== verifiedEmail.toLowerCase()) {
@@ -357,7 +371,54 @@ export default function ContactPage() {
     }
   };
 
-  // --- PHONE AUTH HANDLERS ---
+  // --- PHONE AUTH & RECAPTCHA HANDLERS ---
+  const setupRecaptcha = useCallback(() => {
+    try {
+      const verifier = initRecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        theme: 'dark',
+        onSuccess: () => {
+          setRecaptchaSolved(true);
+          setPhoneError(null);
+        },
+        onExpired: () => {
+          setRecaptchaSolved(false);
+        },
+        onError: (err) => {
+          console.warn('reCAPTCHA error callback:', err);
+        }
+      });
+      if (verifier && typeof verifier.render === 'function') {
+        verifier.render().catch((err) => {
+          console.warn('reCAPTCHA render caught:', err);
+        });
+      }
+      return verifier;
+    } catch (err) {
+      console.error('Failed to setup reCAPTCHA:', err);
+      return null;
+    }
+  }, []);
+
+  const handleResetRecaptcha = () => {
+    resetRecaptchaVerifier('recaptcha-container');
+    setRecaptchaSolved(false);
+    setPhoneError(null);
+    setTimeout(() => {
+      setupRecaptcha();
+    }, 100);
+  };
+
+  // Auto-initialize reCAPTCHA widget once a valid 10-digit Indian phone is entered
+  useEffect(() => {
+    if (phoneValidation.isValid && !isPhoneVerified && !phoneOtpSent) {
+      const timer = setTimeout(() => {
+        setupRecaptcha();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [phoneValidation.isValid, isPhoneVerified, phoneOtpSent, setupRecaptcha]);
+
   const handleSendPhoneOtp = async () => {
     setTouched((prev) => ({ ...prev, phone: true }));
     if (!phoneValidation.isValid) {
@@ -365,11 +426,21 @@ export default function ContactPage() {
       return;
     }
 
+    const container = document.getElementById('recaptcha-container');
+    let verifier = window.recaptchaVerifier;
+    if (!verifier || !container || !container.hasChildNodes()) {
+      verifier = setupRecaptcha();
+    }
+
+    if (!recaptchaSolved) {
+      setPhoneError("Please check the 'I'm not a robot' security box to verify your phone number.");
+      return;
+    }
+
     setPhoneSendingOtp(true);
     setPhoneError(null);
 
     try {
-      const verifier = initRecaptchaVerifier('recaptcha-container');
       const confirmationResult = await sendPhoneOtp(phoneValidation.e164, verifier);
       setPhoneConfirmationResult(confirmationResult);
       setPhoneOtpSent(true);
@@ -379,6 +450,7 @@ export default function ContactPage() {
       console.error('Send Phone OTP Error:', err);
       // Clean up reCAPTCHA verifier if in error state
       resetRecaptchaVerifier('recaptcha-container');
+      setRecaptchaSolved(false);
 
       const isBilling =
         err.code === 'auth/billing-not-enabled' ||
@@ -387,19 +459,19 @@ export default function ContactPage() {
       if (isBilling) {
         setPhoneError('SMS verification is currently unavailable. Please verify via your Work Email address above.');
       } else if (err.code === 'auth/unauthorized-domain') {
-        setPhoneError('Domain not authorized in Firebase. Please add syntax-studio-sigma.vercel.app to Firebase Console > Authentication > Settings > Authorized domains, or verify via Work Email.');
+        setPhoneError('Domain not authorized in Firebase. Please add this domain to Firebase Console > Authentication > Settings > Authorized domains, or verify via Work Email.');
       } else if (err.code === 'auth/operation-not-allowed') {
         setPhoneError('Phone sign-in is disabled in Firebase Console. Please enable the Phone provider, or verify via Work Email.');
       } else if (err.code === 'auth/captcha-check-failed' || err.code === 'auth/app-not-authorized') {
-        setPhoneError('reCAPTCHA verification check failed. Please refresh the page or verify instantly via Work Email.');
+        setPhoneError('Security verification failed. Please check the security box again or verify instantly via Work Email.');
       } else if (err.code === 'auth/too-many-requests') {
         setPhoneError('Too many attempts. Please wait a few minutes before requesting another OTP, or verify via Work Email.');
       } else if (err.code === 'auth/invalid-phone-number') {
         setPhoneError('Invalid phone number format. Please enter a 10-digit Indian mobile number.');
       } else if (err.code === 'auth/quota-exceeded') {
-        setPhoneError('SMS daily quota reached. Please verify instantly via your Work Email address.');
+        setPhoneError('SMS daily quota reached. Please verify instantly via your Work Email address above.');
       } else {
-        setPhoneError(err.message || 'Failed to send OTP. Please verify your phone number or use Work Email verification.');
+        setPhoneError(err.message || 'Failed to send OTP. Please check the security box again or use Work Email verification.');
       }
     } finally {
       setPhoneSendingOtp(false);
@@ -611,13 +683,13 @@ export default function ContactPage() {
   const hasAtLeastOneVerified = isEmailVerified || isPhoneVerified;
 
   return (
-    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Ambient background glow */}
-      <div className="absolute top-24 left-1/4 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-80 right-10 w-96 h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-24 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-80 right-4 sm:right-10 w-72 sm:w-96 h-72 sm:h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
 
-      {/* Invisible reCAPTCHA container for Phone Auth */}
-      <div id="recaptcha-container"></div>
 
       {/* Header */}
       <div className="max-w-4xl mb-12">
@@ -668,7 +740,7 @@ export default function ContactPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Contact Form */}
         <div className="lg:col-span-7">
-          <div className="rounded-2xl border border-border bg-surface/90 backdrop-blur-md p-7 sm:p-10 shadow-2xl space-y-6">
+          <div className="rounded-2xl border border-border bg-surface/90 backdrop-blur-md p-5 sm:p-8 lg:p-10 shadow-2xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/60">
               <h2 className="font-display text-2xl font-bold text-text">
                 {settings?.contactFormTitle || "Project Inquiry Form"}
@@ -896,7 +968,11 @@ export default function ContactPage() {
                       type="button"
                       onClick={handleSendPhoneOtp}
                       disabled={phoneSendingOtp || !formData.phone || !phoneValidation.isValid || phoneTimer > 0}
-                      className="px-4 py-2.5 rounded-lg text-xs font-mono font-semibold bg-cyan/15 text-cyan hover:bg-cyan/25 border border-cyan/40 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5 shrink-0"
+                      className={`px-4 py-2.5 rounded-lg text-xs font-mono font-semibold border transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                        recaptchaSolved
+                          ? 'bg-amber text-ink border-amber hover:bg-amber/90 shadow-md shadow-amber/20'
+                          : 'bg-cyan/15 text-cyan hover:bg-cyan/25 border border-cyan/40 disabled:opacity-40'
+                      }`}
                     >
                       {phoneSendingOtp ? (
                         <>
@@ -905,6 +981,11 @@ export default function ContactPage() {
                         </>
                       ) : phoneTimer > 0 ? (
                         <span>Resend in {phoneTimer}s</span>
+                      ) : recaptchaSolved ? (
+                        <>
+                          <Send size={13} />
+                          <span>Send OTP Now →</span>
+                        </>
                       ) : (
                         <>
                           <Phone size={13} />
@@ -921,6 +1002,48 @@ export default function ContactPage() {
                     <span>{phoneValidation.error}</span>
                   </p>
                 )}
+
+                {/* Security Verification & reCAPTCHA Box */}
+                {!isPhoneVerified && !phoneOtpSent && phoneValidation.isValid && (
+                  <div className="pt-1 pb-1 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-muted flex items-center gap-1.5">
+                        <ShieldCheck size={13} className={recaptchaSolved ? "text-green" : "text-amber"} />
+                        {recaptchaSolved
+                          ? "Security check passed — click 'Send OTP Now'"
+                          : "Security Check: Please check the box below"}
+                      </span>
+                      {recaptchaSolved ? (
+                        <span className="text-green font-semibold">✓ Verified Human</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResetRecaptcha}
+                          className="text-cyan hover:underline text-[10px]"
+                        >
+                          Reload Box
+                        </button>
+                      )}
+                    </div>
+
+                    {isFirebaseTestNumber && (
+                      <div className="p-2.5 rounded-lg bg-amber/10 border border-amber/30 text-amber text-[11px] font-mono flex items-center gap-2">
+                        <Sparkles size={14} className="shrink-0 text-amber" />
+                        <span>Firebase Test Number active: Check box below, then use test OTP <strong>123456</strong></span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Visible reCAPTCHA container - always kept in DOM to prevent detachment */}
+                <div
+                  style={{
+                    display: !isPhoneVerified && !phoneOtpSent && phoneValidation.isValid ? 'block' : 'none'
+                  }}
+                  className="overflow-x-auto py-1"
+                >
+                  <div id="recaptcha-container" className="origin-left scale-[0.88] sm:scale-100 min-h-[78px]" />
+                </div>
 
                 {/* OTP Input Card when OTP is dispatched */}
                 {phoneOtpSent && !isPhoneVerified && (
@@ -944,6 +1067,13 @@ export default function ContactPage() {
                         </button>
                       )}
                     </div>
+
+                    {isFirebaseTestNumber && (
+                      <p className="text-[11px] font-mono text-amber flex items-center gap-1">
+                        <Sparkles size={12} />
+                        <span>Test mode active — verification code is <strong>123456</strong></span>
+                      </p>
+                    )}
 
                     <div className="flex gap-2">
                       <input
@@ -976,10 +1106,15 @@ export default function ContactPage() {
                 )}
 
                 {phoneError && (
-                  <p className="text-[11px] font-mono text-red flex items-center gap-1.5">
-                    <AlertCircle size={13} />
-                    <span>{phoneError}</span>
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-mono text-red flex items-center gap-1.5">
+                      <AlertCircle size={13} className="shrink-0" />
+                      <span>{phoneError}</span>
+                    </p>
+                    <p className="text-[10px] font-mono text-muted pl-4">
+                      Tip: You can also verify instantly via Work Email Link above without SMS.
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -1228,21 +1363,21 @@ export default function ContactPage() {
               </p>
               <div className="space-y-1.5 font-mono text-xs pt-1">
                 {founder.contact?.phone && (
-                  <div className="flex items-center gap-2 text-muted">
-                    <Phone size={13} className="text-amber" />
-                    <a href={`tel:${founder.contact.phone.replace(/\s+/g, '')}`} className="hover:text-text">{founder.contact.phone}</a>
+                  <div className="flex items-center gap-2 text-muted min-w-0">
+                    <Phone size={13} className="text-amber shrink-0" />
+                    <a href={`tel:${founder.contact.phone.replace(/\s+/g, '')}`} className="hover:text-text break-all">{founder.contact.phone}</a>
                   </div>
                 )}
                 {founder.contact?.email && (
-                  <div className="flex items-center gap-2 text-muted">
-                    <Mail size={13} className="text-amber" />
-                    <a href={`mailto:${founder.contact.email}`} className="hover:text-text">{founder.contact.email}</a>
+                  <div className="flex items-center gap-2 text-muted min-w-0">
+                    <Mail size={13} className="text-amber shrink-0" />
+                    <a href={`mailto:${founder.contact.email}`} className="hover:text-text break-all">{founder.contact.email}</a>
                   </div>
                 )}
                 {founder.contact?.github && (
-                  <div className="flex items-center gap-2 text-muted">
-                    <Github size={13} className="text-amber" />
-                    <SafeExternalLink href={founder.contact.github} className="hover:text-text">
+                  <div className="flex items-center gap-2 text-muted min-w-0">
+                    <Github size={13} className="text-amber shrink-0" />
+                    <SafeExternalLink href={founder.contact.github} className="hover:text-text break-all">
                       {founder.contact.github.replace('https://', '')}
                     </SafeExternalLink>
                   </div>

@@ -85,7 +85,7 @@ export default function ProjectDetailPage() {
       : allProjects[0];
 
   return (
-    <div className="pt-32 pb-24 max-w-5xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Back Button & Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs font-mono text-muted mb-8">
         <Link to="/projects" className="hover:text-text flex items-center gap-1">
@@ -379,7 +379,7 @@ export default function ProjectDetailPage() {
         </section>
 
         {/* High-Conversion "Want a System Like This?" Card */}
-        <section className="p-8 sm:p-10 rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface2 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+        <section className="p-5 sm:p-8 lg:p-10 rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface2 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-1.5 text-xs font-mono text-amber">
               <Sparkles size={13} />

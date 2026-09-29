@@ -420,8 +420,8 @@ export default function AdminDashboardPage() {
   // Login view if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="pt-40 pb-28 max-w-md mx-auto px-5 sm:px-0">
-        <div className="p-8 rounded-2xl border border-border bg-surface shadow-2xl">
+      <div className="relative pt-40 pb-28 max-w-md mx-auto px-4 sm:px-0 overflow-x-clip">
+        <div className="p-6 sm:p-8 rounded-2xl border border-border bg-surface shadow-2xl">
           <div className="flex flex-col items-center text-center mb-6">
             <div className="w-12 h-12 rounded-xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber mb-3">
               <ShieldCheck size={26} />
@@ -487,7 +487,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-amber text-amber text-xs font-mono shadow-2xl animate-fadeSlideDown">

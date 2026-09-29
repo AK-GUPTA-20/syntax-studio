@@ -45,10 +45,12 @@ export default function TeamPage() {
   const advantages = settings?.advantages || [];
 
   return (
-    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Ambient background glow */}
-      <div className="absolute top-20 left-1/4 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-80 right-10 w-96 h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-20 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-80 right-4 sm:right-10 w-72 sm:w-96 h-72 sm:h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
 
       {/* Page Header */}
       <div className="max-w-4xl mb-14">
@@ -73,7 +75,7 @@ export default function TeamPage() {
 
       {/* Why a 2-Person Studio Works Better (Dynamic from settings.advantages) */}
       {advantages.length > 0 && (
-        <div className="p-8 sm:p-12 rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface2/40 mb-20 shadow-xl">
+        <div className="p-5 sm:p-8 lg:p-12 rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface2/40 mb-20 shadow-xl">
           <div className="max-w-2xl mb-10">
             <p className="font-mono text-xs text-amber uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Zap size={14} />

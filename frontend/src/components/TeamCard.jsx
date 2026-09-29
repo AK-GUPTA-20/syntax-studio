@@ -23,7 +23,7 @@ export default function TeamCard({ member, compact = false }) {
     return (
       <Link
         to={`/team/${slug}`}
-        className="group block rounded-2xl border border-border bg-surface hover:border-amber/60 hover:bg-surface2/60 transition-all duration-300 p-6 sm:p-7 shadow-lg hover:shadow-glow-amber/20 hover-lift cursor-pointer"
+        className="group block rounded-2xl border border-border bg-surface hover:border-amber/60 hover:bg-surface2/60 transition-all duration-300 p-5 sm:p-7 shadow-lg hover:shadow-glow-amber/20 hover-lift cursor-pointer"
         title={`Click to view ${name}'s full portfolio`}
       >
         <div className="flex items-start gap-4">
@@ -72,7 +72,7 @@ export default function TeamCard({ member, compact = false }) {
   return (
     <div className="rounded-xl border border-border bg-surface overflow-hidden hover-lift flex flex-col justify-between transition-all duration-300">
       {/* Top Banner with Role */}
-      <div className="p-6 sm:p-7 border-b border-border/70 bg-surface2/30">
+      <div className="p-5 sm:p-7 border-b border-border/70 bg-surface2/30">
         <div className="flex items-start gap-4">
           <div className="relative shrink-0">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-border bg-surface2 profile-pulse">
@@ -92,7 +92,7 @@ export default function TeamCard({ member, compact = false }) {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-display text-2xl font-bold text-text truncate">
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-text truncate">
               {name}
             </h3>
             <p className="text-xs font-mono text-amber font-medium mt-0.5">
@@ -106,7 +106,7 @@ export default function TeamCard({ member, compact = false }) {
       </div>
 
       {/* Middle: Bio & Credentials */}
-      <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between space-y-6">
+      <div className="p-5 sm:p-7 flex-1 flex flex-col justify-between space-y-6">
         <div>
           <p className="text-sm text-muted leading-relaxed mb-5">
             {shortBio}

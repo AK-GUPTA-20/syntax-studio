@@ -8,7 +8,7 @@ export default function ProjectNotAvailablePage() {
   const projectTitle = searchParams.get('title') || 'Requested Project';
 
   return (
-    <div className="pt-36 pb-24 max-w-4xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-36 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs font-mono text-muted mb-8">
         <Link to="/projects" className="hover:text-text flex items-center gap-1">
@@ -16,26 +16,26 @@ export default function ProjectNotAvailablePage() {
           <span>~/projects</span>
         </Link>
         <span className="text-border">/</span>
-        <span className="text-amber">404-deployment-not-available</span>
+        <span className="text-amber truncate max-w-[200px] sm:max-w-none">404-deployment-not-available</span>
       </div>
 
       {/* Main Terminal Error Card */}
       <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-2xl">
         {/* Terminal Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-surface2/70 font-mono text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-border bg-surface2/70 font-mono text-xs">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-red/80 inline-block"></span>
             <span className="w-3 h-3 rounded-full bg-amber/80 inline-block"></span>
             <span className="w-3 h-3 rounded-full bg-green/80 inline-block"></span>
-            <span className="text-muted ml-2">syntax_edge_router // status_code: 404</span>
+            <span className="text-muted ml-2 truncate max-w-[170px] sm:max-w-none">syntax_edge_router // status_code: 404</span>
           </div>
-          <span className="text-red font-semibold uppercase tracking-wider text-[11px]">
+          <span className="text-red font-semibold uppercase tracking-wider text-[11px] shrink-0">
             DEPLOYMENT_RESTRICTED
           </span>
         </div>
 
         {/* Content */}
-        <div className="p-8 sm:p-12 space-y-8">
+        <div className="p-5 sm:p-8 lg:p-12 space-y-8">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red/30 bg-red/10 text-xs font-mono text-red">
               <ShieldAlert size={14} />

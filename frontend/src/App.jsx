@@ -49,14 +49,14 @@ function NotFoundPage() {
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-ink text-text flex flex-col relative selection:bg-amber/30 selection:text-text">
+    <div className="min-h-screen bg-ink text-text flex flex-col relative selection:bg-amber/30 selection:text-text overflow-x-clip max-w-full">
       {/* Background Dot-Grid Overlay */}
       <div className="dot-grid fixed inset-0 pointer-events-none opacity-20 z-0" />
 
       <ScrollToTop />
       <Navbar />
 
-      <main className="flex-1 relative z-10">
+      <main className="flex-1 relative z-10 w-full min-w-0 max-w-full overflow-x-clip">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/projects" element={<ProjectsPage />} />

@@ -122,7 +122,6 @@ export function validateEmail(rawEmail) {
 }
 
 /**
-/**
  * Reset / clear reCAPTCHA verifier and clean its container
  */
 export function resetRecaptchaVerifier(containerId = 'recaptcha-container') {
@@ -141,14 +140,12 @@ export function resetRecaptchaVerifier(containerId = 'recaptcha-container') {
 }
 
 /**
- * Initialize or reuse invisible reCAPTCHA verifier for Phone Auth
+ * Initialize or reuse reCAPTCHA verifier for Phone Auth.
+ * Default size is 'normal' (visible checkbox) to ensure direct user activation,
+ * eliminating browser 'requestStorageAccess: Permission denied' errors.
  */
-export function initRecaptchaVerifier(containerId = 'recaptcha-container') {
+export function initRecaptchaVerifier(containerId = 'recaptcha-container', options = {}) {
   if (typeof window === 'undefined') return null;
-
-  if (window.recaptchaVerifier) {
-    return window.recaptchaVerifier;
-  }
 
   const container = document.getElementById(containerId);
   if (!container) {
@@ -156,19 +153,62 @@ export function initRecaptchaVerifier(containerId = 'recaptcha-container') {
     return null;
   }
 
-  container.replaceChildren();
+  // If verifier already exists and container still has rendered widget, return existing verifier
+  if (window.recaptchaVerifier && container.hasChildNodes()) {
+    return window.recaptchaVerifier;
+  }
 
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-    size: 'invisible',
-    callback: () => {
-      // reCAPTCHA solved automatically
-    },
-    'expired-callback': () => {
-      resetRecaptchaVerifier(containerId);
+  // Clean container before creating a new verifier to avoid duplicate widgets
+  resetRecaptchaVerifier(containerId);
+
+  const size = options.size || 'normal';
+  const theme = options.theme || 'dark';
+
+  try {
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      size,
+      theme,
+      callback: (token) => {
+        if (typeof options.onSuccess === 'function') {
+          options.onSuccess(token);
+        }
+      },
+      'expired-callback': () => {
+        if (typeof options.onExpired === 'function') {
+          options.onExpired();
+        }
+        resetRecaptchaVerifier(containerId);
+      },
+      'error-callback': (err) => {
+        console.warn('reCAPTCHA verifier error:', err);
+        if (typeof options.onError === 'function') {
+          options.onError(err);
+        }
+      }
+    });
+
+    return window.recaptchaVerifier;
+  } catch (err) {
+    console.error('Failed to initialize RecaptchaVerifier:', err);
+    throw err;
+  }
+}
+
+/**
+ * Render reCAPTCHA widget explicitly if needed
+ */
+export async function renderRecaptchaVerifier(containerId = 'recaptcha-container', options = {}) {
+  const verifier = initRecaptchaVerifier(containerId, options);
+  if (verifier && typeof verifier.render === 'function') {
+    try {
+      const widgetId = await verifier.render();
+      return { verifier, widgetId };
+    } catch (err) {
+      console.warn('reCAPTCHA render warning:', err);
+      return { verifier, widgetId: null };
     }
-  });
-
-  return window.recaptchaVerifier;
+  }
+  return { verifier: null, widgetId: null };
 }
 
 /**

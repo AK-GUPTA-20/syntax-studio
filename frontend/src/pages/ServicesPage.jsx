@@ -43,7 +43,7 @@ export default function ServicesPage() {
   const engagementTiers = settings?.engagementTiers || [];
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Page Header */}
       <div className="max-w-3xl mb-16">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-surface text-xs font-mono mb-4 text-cyan shadow-sm">
@@ -75,7 +75,7 @@ export default function ServicesPage() {
               {engagementTiers.map((tier, idx) => (
                 <div
                   key={idx}
-                  className={`rounded-2xl border p-7 sm:p-8 flex flex-col justify-between transition-all relative ${
+                  className={`rounded-2xl border p-5 sm:p-8 flex flex-col justify-between transition-all relative ${
                     tier.popular
                       ? 'bg-surface2/80 border-amber shadow-glow-amber/20 ring-1 ring-amber/50'
                       : 'bg-surface border-border hover:border-border/80'
@@ -169,7 +169,7 @@ export default function ServicesPage() {
             {services.map((service, index) => (
               <div
                 key={service.id || index}
-                className="rounded-2xl border border-border bg-surface p-8 sm:p-10 hover-lift relative overflow-hidden"
+                className="rounded-2xl border border-border bg-surface p-5 sm:p-8 lg:p-10 hover-lift relative overflow-hidden"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Left Overview Column */}

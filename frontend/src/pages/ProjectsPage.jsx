@@ -115,10 +115,12 @@ export default function ProjectsPage() {
   const isFiltered = activeCategory !== 'All' || searchQuery.trim() !== '' || onlyLiveDemos;
 
   return (
-    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Ambient background glow */}
-      <div className="absolute top-20 left-1/4 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-60 right-10 w-80 h-80 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-20 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-60 right-4 sm:right-10 w-72 sm:w-80 h-72 sm:h-80 bg-amber/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
 
       {/* Page Header */}
       <div className="max-w-4xl mb-12">
@@ -215,7 +217,7 @@ export default function ProjectsPage() {
             </button>
 
             {/* Search Input */}
-            <div className="relative min-w-[220px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[220px]">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
@@ -284,7 +286,7 @@ export default function ProjectsPage() {
                 of <span className="text-text font-bold">{sortedProjects.length}</span> projects
               </span>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}

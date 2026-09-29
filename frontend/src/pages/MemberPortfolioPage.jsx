@@ -127,18 +127,18 @@ export default function MemberPortfolioPage() {
   const isAkshat = slug.includes('akshat');
 
   return (
-    <div className="pt-32 pb-24 max-w-6xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Top Breadcrumb & Studio Tag */}
-      <div className="flex items-center justify-between gap-4 text-xs font-mono text-muted mb-8 pb-4 border-b border-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-muted mb-8 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Link to="/team" className="hover:text-text flex items-center gap-1">
             <ArrowLeft size={13} />
             <span>~/team</span>
           </Link>
           <span className="text-border">/</span>
-          <span className="text-amber font-semibold">{member.name.toLowerCase().replace(' ', '.')}</span>
+          <span className="text-amber font-semibold truncate max-w-[180px] sm:max-w-none">{member.name.toLowerCase().replace(' ', '.')}</span>
         </div>
-        <span className="text-cyan px-2.5 py-0.5 rounded bg-cyan/10 border border-cyan/30 text-[11px]">
+        <span className="text-cyan px-2.5 py-0.5 rounded bg-cyan/10 border border-cyan/30 text-[11px] shrink-0">
           Syntax Studio Partner
         </span>
       </div>
@@ -184,7 +184,7 @@ export default function MemberPortfolioPage() {
             </h1>
 
             {/* Typewriter role */}
-            <div className="h-8 font-mono text-xl sm:text-2xl text-cyan flex items-center">
+            <div className="min-h-[2.25rem] font-mono text-lg sm:text-2xl text-cyan flex flex-wrap items-center break-words">
               <span>{currentText}</span>
               <span className="text-amber cursor-blink ml-0.5">_</span>
             </div>
@@ -235,7 +235,7 @@ export default function MemberPortfolioPage() {
       </section>
 
       {/* Stats Counter Bar */}
-      <section className="mb-16 p-6 rounded-xl border border-border bg-surface grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <section className="mb-16 p-4 sm:p-6 rounded-xl border border-border bg-surface grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-center">
         {member.stats?.map((stat, i) => (
           <div key={i} className="p-3">
             <div className="font-display text-2xl sm:text-3xl font-bold text-amber">
@@ -425,7 +425,7 @@ export default function MemberPortfolioPage() {
       )}
 
       {/* Direct Contact Card */}
-      <section className="p-8 sm:p-10 rounded-2xl border border-border bg-surface text-center space-y-4">
+      <section className="p-5 sm:p-8 lg:p-10 rounded-2xl border border-border bg-surface text-center space-y-4">
         <h3 className="font-display text-2xl font-bold text-text">
           Connect directly with {member.name}
         </h3>
@@ -437,10 +437,10 @@ export default function MemberPortfolioPage() {
           {member.contact?.email && (
             <button
               onClick={copyEmail}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono bg-surface2 border border-border text-amber hover:border-amber transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono bg-surface2 border border-border text-amber hover:border-amber transition-all max-w-full"
             >
-              {copiedEmail ? <Check size={14} className="text-green" /> : <Copy size={14} />}
-              <span>{copiedEmail ? "Email copied!" : member.contact.email}</span>
+              {copiedEmail ? <Check size={14} className="text-green shrink-0" /> : <Copy size={14} className="shrink-0" />}
+              <span className="break-all">{copiedEmail ? "Email copied!" : member.contact.email}</span>
             </button>
           )}
 

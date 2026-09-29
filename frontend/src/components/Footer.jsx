@@ -26,8 +26,8 @@ export default function Footer() {
     : 'Akshat Gupta & Vasu Singhal';
 
   return (
-    <footer className="border-t border-border bg-ink relative z-10 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+    <footer className="border-t border-border bg-ink relative z-10 pt-16 pb-12 overflow-x-clip">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-border/80">
           {/* Brand info */}
@@ -118,7 +118,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-muted">
+        <div className="pt-8 flex flex-col sm:flex-row items-center sm:justify-between gap-4 font-mono text-xs text-muted text-center sm:text-left">
           <div>
             © {currentYear} {settings?.companyName || 'Syntax Studio'}. Founded by {foundersName}.
           </div>
