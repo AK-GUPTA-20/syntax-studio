@@ -1,4 +1,11 @@
+import { sanitizeHeaderToken } from '../utils/security';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+export const authHeader = (token) => {
+  const sanitized = sanitizeHeaderToken(token);
+  return sanitized ? { Authorization: `Bearer ${sanitized}` } : {};
+};
 
 async function request(endpoint, options = {}) {
   const headers = {
@@ -15,8 +22,15 @@ async function request(endpoint, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errorMsg = data.message || data.error || `HTTP error ${response.status}`;
-    const error = new Error(errorMsg);
+    if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('syntax-auth-expired', { detail: { status: response.status } }));
+    }
+    const rawError = data.message || data.error || `HTTP error ${response.status}`;
+    // Strip HTML tags and limit length to prevent payload reflection
+    const safeErrorMsg = typeof rawError === 'string'
+      ? rawError.replace(/<[^>]*>?/gm, '').slice(0, 300)
+      : `HTTP error ${response.status}`;
+    const error = new Error(safeErrorMsg);
     error.status = response.status;
     error.data = data;
     throw error;
@@ -130,14 +144,14 @@ export const loginAdmin = async (password) => {
 
 export const verifyAdminToken = async (token) => {
   const res = await request('/auth/verify', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };
 
 export const getInquiries = async (token) => {
   const res = await request('/contact', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };
@@ -145,7 +159,7 @@ export const getInquiries = async (token) => {
 export const updateInquiry = async (id, payload, token) => {
   const res = await request(`/contact/${id}`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -154,7 +168,7 @@ export const updateInquiry = async (id, payload, token) => {
 export const deleteInquiry = async (id, token) => {
   const res = await request(`/contact/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };
@@ -162,7 +176,7 @@ export const deleteInquiry = async (id, token) => {
 export const createProjectApi = async (payload, token) => {
   const res = await request('/projects', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   invalidateProjectsCache();
@@ -172,7 +186,7 @@ export const createProjectApi = async (payload, token) => {
 export const updateProjectApi = async (id, payload, token) => {
   const res = await request(`/projects/${id}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   invalidateProjectsCache();
@@ -182,7 +196,7 @@ export const updateProjectApi = async (id, payload, token) => {
 export const deleteProjectApi = async (id, token) => {
   const res = await request(`/projects/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   invalidateProjectsCache();
   return res.data;
@@ -191,7 +205,7 @@ export const deleteProjectApi = async (id, token) => {
 export const updateTeamMemberApi = async (id, payload, token) => {
   const res = await request(`/team/${id}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -200,7 +214,7 @@ export const updateTeamMemberApi = async (id, payload, token) => {
 export const createServiceApi = async (payload, token) => {
   const res = await request('/services', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -209,7 +223,7 @@ export const createServiceApi = async (payload, token) => {
 export const updateServiceApi = async (id, payload, token) => {
   const res = await request(`/services/${id}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -218,7 +232,7 @@ export const updateServiceApi = async (id, payload, token) => {
 export const deleteServiceApi = async (id, token) => {
   const res = await request(`/services/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };
@@ -227,7 +241,7 @@ export const deleteServiceApi = async (id, token) => {
 export const uploadImageApi = async (fileData, fileName, folder = '/syntax-studio', token) => {
   const res = await request('/upload', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify({ file: fileData, fileName, folder }),
   });
   return res.data;
@@ -242,7 +256,7 @@ export const getSettings = async () => {
 export const updateSettingsApi = async (payload, token) => {
   const res = await request('/settings', {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -252,7 +266,7 @@ export const updateSettingsApi = async (payload, token) => {
 export const createTeamMemberApi = async (payload, token) => {
   const res = await request('/team', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -261,7 +275,7 @@ export const createTeamMemberApi = async (payload, token) => {
 export const deleteTeamMemberApi = async (id, token) => {
   const res = await request(`/team/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };
@@ -270,7 +284,7 @@ export const deleteTeamMemberApi = async (id, token) => {
 export const createTestimonialApi = async (payload, token) => {
   const res = await request('/testimonials', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -279,7 +293,7 @@ export const createTestimonialApi = async (payload, token) => {
 export const updateTestimonialApi = async (id, payload, token) => {
   const res = await request(`/testimonials/${id}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
     body: JSON.stringify(payload),
   });
   return res.data;
@@ -288,7 +302,7 @@ export const updateTestimonialApi = async (id, payload, token) => {
 export const deleteTestimonialApi = async (id, token) => {
   const res = await request(`/testimonials/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...authHeader(token) },
   });
   return res.data;
 };

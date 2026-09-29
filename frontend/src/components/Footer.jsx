@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Terminal, Github, Linkedin, Mail, Phone, ArrowUpRight, Heart, Code2 } from 'lucide-react';
 import { getSettings, getTeam } from '../api/client';
+import { SafeExternalLink } from '../utils/security';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -84,26 +85,22 @@ export default function Footer() {
                     <ArrowUpRight size={13} />
                   </Link>
                   {founder.contact?.github && (
-                    <a
+                    <SafeExternalLink
                       href={founder.contact.github}
-                      target="_blank"
-                      rel="noreferrer"
                       className="flex items-center gap-1.5 text-muted hover:text-text transition-colors"
                     >
                       <Github size={13} />
                       <span className="truncate max-w-[170px]">{founder.contact.github.replace('https://', '')}</span>
-                    </a>
+                    </SafeExternalLink>
                   )}
                   {founder.contact?.linkedin && (
-                    <a
+                    <SafeExternalLink
                       href={founder.contact.linkedin}
-                      target="_blank"
-                      rel="noreferrer"
                       className="flex items-center gap-1.5 text-muted hover:text-text transition-colors"
                     >
                       <Linkedin size={13} />
                       <span>LinkedIn Profile</span>
-                    </a>
+                    </SafeExternalLink>
                   )}
                   {founder.contact?.email && (
                     <a

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Upload, Check, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, Check, AlertCircle, Image as ImageIcon, ShieldCheck } from 'lucide-react';
 import { uploadImageApi } from '../api/client';
+import { validateImageFile, sanitizeFileName } from '../utils/security';
 
 export default function ImageUploader({ onUploadComplete, currentImageUrl, folder = '/syntax-studio', token, label = "Upload Image (ImageKit)" }) {
   const [uploading, setUploading] = useState(false);
@@ -11,22 +12,26 @@ export default function ImageUploader({ onUploadComplete, currentImageUrl, folde
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size limit: 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size exceeds 5MB limit');
+    setError(null);
+    setSuccess(false);
+
+    // Deep security inspection: MIME, extension, SVG rejection, magic-bytes
+    const securityCheck = await validateImageFile(file);
+    if (!securityCheck.isValid) {
+      setError(securityCheck.error);
+      e.target.value = ''; // reset file input
       return;
     }
 
     setUploading(true);
-    setError(null);
-    setSuccess(false);
 
     try {
+      const sanitizedName = sanitizeFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
           const base64Data = reader.result;
-          const uploadRes = await uploadImageApi(base64Data, file.name, folder, token);
+          const uploadRes = await uploadImageApi(base64Data, sanitizedName, folder, token);
           if (uploadRes && uploadRes.url) {
             onUploadComplete(uploadRes.url);
             setSuccess(true);

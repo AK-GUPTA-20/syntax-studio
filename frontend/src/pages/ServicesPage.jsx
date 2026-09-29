@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Cpu, HelpCircle, Layers } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Cpu,
+  HelpCircle,
+  Layers,
+  Zap,
+  Shield,
+  Clock,
+  Sparkles,
+  Award,
+  Check
+} from 'lucide-react';
 import { getServices, getSettings } from '../api/client';
-import { ServiceSkeleton } from '../components/SkeletonLoader';
+import { ServiceSkeleton, TierSkeleton } from '../components/SkeletonLoader';
+import FaqAccordion from '../components/FaqAccordion';
 
 export default function ServicesPage() {
   const [services, setServices] = useState([]);
@@ -27,181 +40,264 @@ export default function ServicesPage() {
     loadData();
   }, []);
 
-  const defaultFaqs = [
-    {
-      q: "How does working with a 2-person studio differ from a traditional agency?",
-      a: "Traditional agencies bill for account managers, sales reps, and overhead, often handing actual coding off to junior contractors. At Syntax Studio, you collaborate directly with founders Akshat Gupta & Vasu Singhal from architecture to deployment."
-    },
-    {
-      q: "What is your typical project timeline?",
-      a: "Landing pages and corporate business websites typically take 1 to 2 weeks. Full-scale web applications, custom e-commerce stores, and complex REST backends typically take 3 to 5 weeks with weekly milestone demos."
-    },
-    {
-      q: "Why do you use Firebase & PostgreSQL instead of generic shared hosting?",
-      a: "We choose technologies that provide sub-second query performance, automated zero-downtime backups, and predictable cloud scaling without security vulnerabilities."
-    },
-    {
-      q: "Do you offer post-launch maintenance and support?",
-      a: "Yes. We offer monthly engineering retainers covering 24/7 uptime monitoring, security patching, dependency upgrades, and rapid feature iterations."
-    }
-  ];
-
-  const displayedFaqs = settings?.faqs && settings.faqs.length > 0 ? settings.faqs : defaultFaqs;
+  const engagementTiers = settings?.engagementTiers || [];
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
       {/* Page Header */}
       <div className="max-w-3xl mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-mono mb-4 text-cyan">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-surface text-xs font-mono mb-4 text-cyan shadow-sm">
           <span>{settings?.servicesPageBadge || "// Full-Cycle Engineering Services"}</span>
         </div>
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-text mb-5 leading-tight">
-          {settings?.servicesPageTitle || "Services Designed for Scale & Reliability"}
+          {settings?.servicesPageTitle || "Engineered for Velocity, Scale & Security"}
         </h1>
-        <p className="text-base text-muted leading-relaxed">
-          {settings?.servicesPageSubtitle || "From high-performance frontend interfaces to high-throughput backend APIs, we engineer custom web software that solves real business problems."}
+        <p className="text-base sm:text-lg text-muted leading-relaxed font-sans">
+          {settings?.servicesPageSubtitle || "From responsive, hand-crafted frontend interfaces to resilient high-throughput backend APIs, we engineer custom software that solves real business bottlenecks."}
         </p>
       </div>
 
-      {/* Services Detailed List */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
-          {[1, 2, 3, 4].map((n) => <ServiceSkeleton key={n} />)}
-        </div>
-      ) : (
-        <div className="space-y-12 mb-24">
-          {services.map((service, index) => (
-            <div
-              key={service.id || index}
-              className="rounded-2xl border border-border bg-surface p-8 sm:p-10 hover-lift relative overflow-hidden"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Left Overview Column */}
-                <div className="lg:col-span-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-amber font-semibold px-2.5 py-1 rounded bg-amber/10 border border-amber/30">
-                      // {service.code || `0${index + 1}`}
-                    </span>
-                    {service.typicalTimeline && (
-                      <span className="font-mono text-xs text-muted">
-                        Timeline: {service.typicalTimeline}
-                      </span>
+      {/* Engagement Models & Tiers */}
+      {(loading || engagementTiers.length > 0) && (
+        <section className="mb-24">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <p className="font-mono text-xs text-amber uppercase tracking-wider mb-2">// Engagement Models</p>
+            <h2 className="font-display text-3xl font-bold text-text">Transparent, Milestone-Based Sprints</h2>
+            <p className="text-xs sm:text-sm text-muted mt-1 font-sans">
+              Every engagement is fixed-price. Zero hourly surprises, zero retainers until work is delivered.
+            </p>
+          </div>
+
+          {loading ? (
+            <TierSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {engagementTiers.map((tier, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-2xl border p-7 sm:p-8 flex flex-col justify-between transition-all relative ${
+                    tier.popular
+                      ? 'bg-surface2/80 border-amber shadow-glow-amber/20 ring-1 ring-amber/50'
+                      : 'bg-surface border-border hover:border-border/80'
+                  }`}
+                >
+                  {tier.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber text-ink text-[11px] font-mono font-bold uppercase tracking-wider">
+                      ★ Most Popular
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      {tier.badge && (
+                        <span className="text-[11px] font-mono text-cyan bg-cyan/10 px-2 py-0.5 rounded border border-cyan/20">
+                          {tier.badge}
+                        </span>
+                      )}
+                      {tier.timeline && (
+                        <span className="text-xs font-mono text-muted flex items-center gap-1">
+                          <Clock size={12} className="text-amber" />
+                          {tier.timeline}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="font-display text-xl font-bold text-text mb-2">{tier.name}</h3>
+                    {tier.target && (
+                      <p className="text-xs text-muted leading-relaxed font-sans mb-5">{tier.target}</p>
+                    )}
+
+                    {tier.price && (
+                      <div className="pb-5 mb-5 border-b border-border/80">
+                        <span className="font-mono text-xs text-muted block">Fixed-Price Range</span>
+                        <span className="font-display text-2xl font-bold text-amber">{tier.price}</span>
+                      </div>
+                    )}
+
+                    {tier.features && tier.features.length > 0 && (
+                      <div className="space-y-2.5 mb-8">
+                        <p className="text-[11px] font-mono text-text font-semibold uppercase tracking-wider">// Included Deliverables:</p>
+                        {tier.features.map((feat, fIdx) => (
+                          <div key={fIdx} className="flex items-start gap-2 text-xs font-mono text-muted">
+                            <Check size={14} className="text-green shrink-0 mt-0.5" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
 
-                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-text">
-                    {service.title}
-                  </h2>
+                  <Link
+                    to={`/contact?service=${encodeURIComponent(tier.name)}&budget=${encodeURIComponent(tier.price || '')}`}
+                    className={`w-full py-3 rounded-lg text-xs font-mono font-semibold flex items-center justify-center gap-2 transition-all ${
+                      tier.popular
+                        ? 'bg-amber text-ink hover:bg-amber/90 shadow-md'
+                        : 'bg-surface2 border border-border text-text hover:border-cyan/50 hover:text-cyan'
+                    }`}
+                  >
+                    <span>{tier.ctaText || 'Inquire for Sprint'}</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
-                  <p className="text-sm text-muted leading-relaxed font-sans">
-                    {service.overview || service.shortDescription}
-                  </p>
+      {/* Services Detailed List */}
+      <section className="mb-24">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <p className="font-mono text-xs text-cyan uppercase tracking-wider mb-2">// Capabilities Catalog</p>
+          <h2 className="font-display text-3xl font-bold text-text">Specialized Engineering Modules</h2>
+          <p className="text-xs sm:text-sm text-muted mt-1 font-sans">
+            Modular services we assemble to create tailored solutions for your platform.
+          </p>
+        </div>
 
-                  {/* Tech stack */}
-                  <div className="pt-2">
-                    <p className="font-mono text-xs text-cyan mb-2">// Core Stack</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(service.technologies || []).map((t) => (
-                        <span
-                          key={t}
-                          className="px-2.5 py-1 rounded text-xs font-mono bg-surface2 border border-border text-text/90"
-                        >
-                          {t}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+            {[1, 2, 3, 4].map((n) => <ServiceSkeleton key={n} />)}
+          </div>
+        ) : services.length === 0 ? (
+          <div className="p-12 rounded-2xl border border-border bg-surface text-center space-y-3 font-mono text-xs">
+            <p className="text-text font-medium text-sm">No engineering services found in the database.</p>
+            <p className="text-muted">Use the administrative panel to publish new service modules.</p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {services.map((service, index) => (
+              <div
+                key={service.id || index}
+                className="rounded-2xl border border-border bg-surface p-8 sm:p-10 hover-lift relative overflow-hidden"
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Left Overview Column */}
+                  <div className="lg:col-span-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-amber font-semibold px-2.5 py-1 rounded bg-amber/10 border border-amber/30">
+                        // {service.code || `0${index + 1}`}
+                      </span>
+                      {service.typicalTimeline && (
+                        <span className="font-mono text-xs text-muted flex items-center gap-1">
+                          <Clock size={12} className="text-amber" />
+                          <span>Timeline: {service.typicalTimeline}</span>
                         </span>
-                      ))}
+                      )}
+                    </div>
+
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-text">
+                      {service.title}
+                    </h2>
+
+                    <p className="text-sm text-muted leading-relaxed font-sans">
+                      {service.overview || service.shortDescription}
+                    </p>
+
+                    {/* Tech stack */}
+                    {service.technologies && service.technologies.length > 0 && (
+                      <div className="pt-2">
+                        <p className="font-mono text-xs text-cyan mb-2">// Core Stack</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {service.technologies.map((t) => (
+                            <span
+                              key={t}
+                              className="px-2.5 py-1 rounded text-xs font-mono bg-surface2 border border-border text-text/90"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4">
+                      <Link
+                        to={`/contact?service=${encodeURIComponent(service.title)}`}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-sm active:scale-95"
+                      >
+                        <span>Inquire About {service.title}</span>
+                        <ArrowRight size={14} />
+                      </Link>
                     </div>
                   </div>
 
-                  <div className="pt-4">
-                    <Link
-                      to={`/contact?service=${encodeURIComponent(service.title)}`}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-sm"
-                    >
-                      <span>Inquire About {service.title}</span>
-                      <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </div>
+                  {/* Right Columns: Problems & Deliverables */}
+                  <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface2/40 p-6 rounded-xl border border-border/60">
+                    {/* Problems We Solve */}
+                    <div>
+                      <h3 className="font-mono text-xs text-amber uppercase tracking-wider mb-3 font-semibold">
+                        Problems We Solve:
+                      </h3>
+                      <ul className="space-y-2 text-xs text-muted font-sans">
+                        {(service.problemsSolved || []).map((p, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-amber mt-0.5 font-bold">›</span>
+                            <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
-                {/* Right Columns: Problems & Deliverables */}
-                <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface2/40 p-6 rounded-xl border border-border/60">
-                  {/* Problems We Solve */}
-                  <div>
-                    <h3 className="font-mono text-xs text-amber uppercase tracking-wider mb-3">
-                      Problems We Solve:
-                    </h3>
-                    <ul className="space-y-2 text-xs text-muted">
-                      {(service.problemsSolved || []).map((p, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-amber mt-0.5 font-bold">›</span>
-                          <span>{p}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Deliverables */}
-                  <div>
-                    <h3 className="font-mono text-xs text-green uppercase tracking-wider mb-3">
-                      What We Deliver:
-                    </h3>
-                    <ul className="space-y-2 text-xs text-muted">
-                      {(service.deliverables || []).map((d, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <CheckCircle2 size={13} className="text-green shrink-0 mt-0.5" />
-                          <span>{d}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {/* Deliverables */}
+                    <div>
+                      <h3 className="font-mono text-xs text-green uppercase tracking-wider mb-3 font-semibold">
+                        What We Deliver:
+                      </h3>
+                      <ul className="space-y-2 text-xs text-muted font-sans">
+                        {(service.deliverables || []).map((d, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <CheckCircle2 size={13} className="text-green shrink-0 mt-0.5" />
+                            <span>{d}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </section>
 
-      {/* Frequently Asked Questions */}
+      {/* Client Questions & Answers */}
       <section className="mb-20">
         <div className="max-w-2xl mb-12">
           <p className="font-mono text-xs text-amber uppercase tracking-wider mb-2">
-            {settings?.faqBadge || "// FAQ"}
+            // Client Questions & Answers
           </p>
           <h2 className="font-display text-3xl font-bold text-text">
-            {settings?.faqTitle || "Frequently Asked Questions"}
+            Frequently Asked Questions
           </h2>
+          <p className="text-xs sm:text-sm text-muted mt-1 font-sans">
+            Clear, honest answers about our engineering process, milestones, and guarantees.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {displayedFaqs.map((faq, i) => (
-            <div key={i} className="p-6 rounded-xl border border-border bg-surface">
-              <h3 className="font-display font-semibold text-text text-base mb-2 flex items-start gap-2">
-                <HelpCircle size={17} className="text-cyan shrink-0 mt-0.5" />
-                <span>{faq.q}</span>
-              </h3>
-              <p className="text-xs sm:text-sm text-muted leading-relaxed pl-6">
-                {faq.a}
-              </p>
-            </div>
-          ))}
-        </div>
+        <FaqAccordion customFaqs={settings?.faqs} loading={loading} />
       </section>
 
       {/* Final Call to Action */}
-      <div className="p-8 sm:p-12 rounded-2xl border border-border bg-surface text-center space-y-4">
-        <h2 className="font-display text-3xl font-bold text-text">
-          {settings?.ctaTitle || "Ready to launch your project?"}
+      <div className="p-8 sm:p-14 rounded-2xl border border-border bg-surface text-center space-y-5 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <h2 className="font-display text-3xl sm:text-4xl font-bold text-text">
+          {settings?.ctaTitle || "Ready to launch your project on schedule?"}
         </h2>
-        <p className="text-sm text-muted max-w-lg mx-auto">
-          {settings?.ctaDescription || "Contact our team today to get a detailed proposal and technical estimate."}
+        <p className="text-sm text-muted max-w-lg mx-auto font-sans">
+          {settings?.ctaDescription || "Contact our team today to get a detailed technical architecture proposal and sprint timeline estimate."}
         </p>
-        <Link
-          to="/contact"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-md"
-        >
-          <span>Start a Project</span>
-          <ArrowRight size={15} />
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <Link
+            to="/contact"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-md active:scale-95"
+          >
+            <span>Start a Project</span>
+            <ArrowRight size={15} />
+          </Link>
+        </div>
       </div>
     </div>
   );

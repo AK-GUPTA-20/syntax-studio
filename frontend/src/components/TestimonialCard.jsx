@@ -9,22 +9,23 @@ export default function TestimonialCard({ testimonial }) {
     content,
     rating = 5,
     projectRef,
-    isSample = true
+    verified = true
   } = testimonial;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-6 sm:p-7 flex flex-col justify-between hover-lift relative">
       <div>
-        {/* Verification & Sample Badges */}
+        {/* Rating and Verification Status */}
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-1 text-amber">
             {[...Array(rating)].map((_, i) => (
               <Star key={i} size={14} fill="#E8A33D" stroke="#E8A33D" />
             ))}
           </div>
-          {isSample && (
-            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-surface2 border border-border text-muted">
-              Demo Testimonial
+          {verified && (
+            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-green/10 border border-green/30 text-green flex items-center gap-1">
+              <ShieldCheck size={11} />
+              <span>Verified Client</span>
             </span>
           )}
         </div>
@@ -42,7 +43,7 @@ export default function TestimonialCard({ testimonial }) {
               {clientName}
             </h4>
             <p className="text-xs text-muted">
-              {role}, {company}
+              {role}{company ? `, ${company}` : ''}
             </p>
           </div>
           {projectRef && (

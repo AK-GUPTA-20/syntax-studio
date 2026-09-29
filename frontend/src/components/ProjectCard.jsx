@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ExternalLink, Globe, AlertTriangle } from 'lucide-react';
+import { SafeExternalLink, safeWindowOpen } from '../utils/security';
 
 export default function ProjectCard({ project }) {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function ProjectCard({ project }) {
   const handleImageClick = (e) => {
     e.stopPropagation();
     if (hasLiveDeploy) {
-      window.open(liveUrl, '_blank', 'noopener,noreferrer');
+      safeWindowOpen(liveUrl);
     } else {
       navigate(unavailableUrl);
     }
@@ -46,17 +47,15 @@ export default function ProjectCard({ project }) {
         {/* Deploy Status Indicator (No GitHub URL) */}
         <div className="flex items-center gap-2">
           {hasLiveDeploy ? (
-            <a
+            <SafeExternalLink
               href={liveUrl}
-              target="_blank"
-              rel="noreferrer"
               className="text-muted hover:text-amber transition-colors flex items-center gap-1 font-semibold text-xs"
               title="Open Live Website"
               onClick={(e) => e.stopPropagation()}
             >
               <Globe size={13} className="text-amber" />
               <span>live ↗</span>
-            </a>
+            </SafeExternalLink>
           ) : (
             <Link
               to={unavailableUrl}

@@ -136,7 +136,7 @@ export function resetRecaptchaVerifier(containerId = 'recaptcha-container') {
   }
   const container = typeof document !== 'undefined' && document.getElementById(containerId);
   if (container) {
-    container.innerHTML = '';
+    container.replaceChildren();
   }
 }
 
@@ -156,7 +156,7 @@ export function initRecaptchaVerifier(containerId = 'recaptcha-container') {
     return null;
   }
 
-  container.innerHTML = '';
+  container.replaceChildren();
 
   window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',

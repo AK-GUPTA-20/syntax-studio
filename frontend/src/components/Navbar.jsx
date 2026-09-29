@@ -102,6 +102,10 @@ export default function Navbar() {
 
         {/* CTA & Admin Links */}
         <div className="hidden md:flex items-center gap-3">
+          <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green/10 border border-green/30 text-[11px] font-mono text-green">
+            <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse"></span>
+            <span>Sprint Slots Open</span>
+          </span>
           <Link
             to="/admin"
             className="p-2 rounded-lg border border-border bg-surface hover:border-amber/40 hover:text-amber text-muted transition-colors"
@@ -112,7 +116,7 @@ export default function Navbar() {
           </Link>
           <Link
             to="/contact"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 hover:shadow-glow-amber transition-all shadow-sm active:scale-95"
           >
             Start a Project
             <ArrowUpRight size={14} />

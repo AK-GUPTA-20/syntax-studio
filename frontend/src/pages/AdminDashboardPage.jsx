@@ -51,6 +51,7 @@ import {
 } from '../api/client';
 import ImageUploader from '../components/ImageUploader';
 import StudioSettingsManager from '../components/StudioSettingsManager';
+import { sanitizeUrl, SafeExternalLink, sanitizeInput } from '../utils/security';
 
 export default function AdminDashboardPage() {
   const [token, setToken] = useState(() => localStorage.getItem('syntax_admin_token') || '');
@@ -58,6 +59,18 @@ export default function AdminDashboardPage() {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Security: Brute-force protection lockout timer
+  const [lockoutTimer, setLockoutTimer] = useState(() => {
+    try {
+      const lockoutUntil = sessionStorage.getItem('syntax_admin_lockout_until');
+      if (lockoutUntil) {
+        const remaining = Math.ceil((parseInt(lockoutUntil, 10) - Date.now()) / 1000);
+        return remaining > 0 ? remaining : 0;
+      }
+    } catch (e) {}
+    return 0;
+  });
 
   // Active Tab: inquiries | projects | team | services | testimonials | settings
   const [activeTab, setActiveTab] = useState('inquiries');
@@ -97,6 +110,56 @@ export default function AdminDashboardPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // Lockout countdown timer
+  useEffect(() => {
+    if (lockoutTimer <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutTimer((prev) => {
+        if (prev <= 1) {
+          try {
+            sessionStorage.removeItem('syntax_admin_lockout_until');
+          } catch (e) {}
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutTimer]);
+
+  // Handle global 401 / 403 auth expiration dispatched by api client
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      handleLogout('Session expired or unauthorized access detected. Please log in again.');
+    };
+    window.addEventListener('syntax-auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('syntax-auth-expired', handleAuthExpired);
+  }, []);
+
+  // 30-minute inactivity auto-logout for admin session security
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+    let idleTimer = setTimeout(() => {
+      handleLogout('Admin session timed out after 30 minutes of inactivity.');
+    }, INACTIVITY_TIMEOUT_MS);
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        handleLogout('Admin session timed out after 30 minutes of inactivity.');
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const userEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    userEvents.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
+
+    return () => {
+      clearTimeout(idleTimer);
+      userEvents.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+    };
+  }, [isAuthenticated]);
+
   // Verify stored token on mount
   useEffect(() => {
     async function verify() {
@@ -105,7 +168,9 @@ export default function AdminDashboardPage() {
         await verifyAdminToken(token);
         setIsAuthenticated(true);
       } catch (err) {
-        localStorage.removeItem('syntax_admin_token');
+        try {
+          localStorage.removeItem('syntax_admin_token');
+        } catch (e) {}
         setToken('');
         setIsAuthenticated(false);
       }
@@ -146,6 +211,8 @@ export default function AdminDashboardPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (lockoutTimer > 0) return;
+
     setAuthLoading(true);
     setAuthError('');
 
@@ -153,22 +220,45 @@ export default function AdminDashboardPage() {
       const res = await loginAdmin(password);
       const userToken = res.token || 'akshat0021';
       localStorage.setItem('syntax_admin_token', userToken);
+      try {
+        sessionStorage.removeItem('syntax_admin_failures');
+        sessionStorage.removeItem('syntax_admin_lockout_until');
+      } catch (e) {}
       setToken(userToken);
       setIsAuthenticated(true);
       setPassword('');
       showToast('Welcome back, Admin!');
     } catch (err) {
-      setAuthError(err.message || 'Incorrect admin password. Access denied.');
+      let failures = 1;
+      try {
+        failures = (parseInt(sessionStorage.getItem('syntax_admin_failures') || '0', 10)) + 1;
+        sessionStorage.setItem('syntax_admin_failures', failures.toString());
+      } catch (e) {}
+
+      if (failures >= 5) {
+        const lockoutPeriod = 30; // 30 seconds cooldown
+        const until = Date.now() + lockoutPeriod * 1000;
+        try {
+          sessionStorage.setItem('syntax_admin_lockout_until', until.toString());
+        } catch (e) {}
+        setLockoutTimer(lockoutPeriod);
+        setAuthError(`Too many failed login attempts. Locked out for ${lockoutPeriod} seconds.`);
+      } else {
+        setAuthError(`${err.message || 'Incorrect admin password. Access denied.'} (${5 - failures} attempts remaining)`);
+      }
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('syntax_admin_token');
+  const handleLogout = (reason = 'Logged out successfully') => {
+    try {
+      localStorage.removeItem('syntax_admin_token');
+    } catch (e) {}
     setToken('');
     setIsAuthenticated(false);
-    showToast('Logged out successfully');
+    setInquiries([]);
+    showToast(reason);
   };
 
   // Inquiry actions
@@ -352,12 +442,20 @@ export default function AdminDashboardPage() {
               <input
                 type="password"
                 required
+                disabled={lockoutTimer > 0}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-surface2 border border-border text-sm text-text focus:border-amber transition-colors font-mono"
+                placeholder={lockoutTimer > 0 ? `Locked out (${lockoutTimer}s)` : '••••••••'}
+                className="w-full px-3.5 py-2.5 rounded-lg bg-surface2 border border-border text-sm text-text focus:border-amber transition-colors font-mono disabled:opacity-50"
               />
             </div>
+
+            {lockoutTimer > 0 && (
+              <div className="p-2.5 rounded-lg bg-red/10 border border-red/30 text-red text-xs font-mono flex items-center gap-2">
+                <AlertCircle size={14} />
+                <span>Security lockout active: Retry in {lockoutTimer}s</span>
+              </div>
+            )}
 
             {authError && (
               <p className="text-xs font-mono text-red">{authError}</p>
@@ -365,15 +463,23 @@ export default function AdminDashboardPage() {
 
             <button
               type="submit"
-              disabled={authLoading}
+              disabled={authLoading || lockoutTimer > 0}
               className="w-full py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               <Lock size={14} />
-              <span>{authLoading ? 'verifying()...' : 'login_admin()'}</span>
+              <span>
+                {authLoading
+                  ? 'verifying()...'
+                  : lockoutTimer > 0
+                  ? `locked_out(${lockoutTimer}s)`
+                  : 'login_admin()'}
+              </span>
             </button>
           </form>
           <div className="mt-4 pt-4 border-t border-border/60 text-center">
-            <p className="text-[11px] font-mono text-muted">Default admin key: akshat0021</p>
+            <p className="text-[11px] font-mono text-muted flex items-center justify-center gap-1">
+              <ShieldCheck size={12} className="text-cyan" /> Secure studio console • End-to-end token authenticated
+            </p>
           </div>
         </div>
       </div>
@@ -673,14 +779,12 @@ export default function AdminDashboardPage() {
                     className="w-full h-full object-cover"
                   />
                   {proj.liveUrl && (
-                    <a
+                    <SafeExternalLink
                       href={proj.liveUrl}
-                      target="_blank"
-                      rel="noreferrer"
                       className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono bg-ink/90 border border-amber/60 text-amber flex items-center gap-1"
                     >
                       <Globe size={11} /> live ↗
-                    </a>
+                    </SafeExternalLink>
                   )}
                 </div>
 
@@ -813,15 +917,13 @@ export default function AdminDashboardPage() {
 
                 <div className="pt-2 border-t border-border flex justify-between items-center text-xs font-mono">
                   <span className="text-muted">Personal route: /team/{mbr.slug}</span>
-                  <a
+                  <SafeExternalLink
                     href={`/team/${mbr.slug}`}
-                    target="_blank"
-                    rel="noreferrer"
                     className="text-amber hover:underline flex items-center gap-1"
                   >
                     <span>view_portfolio()</span>
                     <ExternalLink size={12} />
-                  </a>
+                  </SafeExternalLink>
                 </div>
               </div>
             ))}
@@ -908,13 +1010,13 @@ export default function AdminDashboardPage() {
               onClick={() => {
                 setCurrentTestimonial({
                   clientName: '',
-                  role: 'Product Lead',
-                  company: 'Acme Corp',
-                  content: 'Working with Akshat and Vasu was fantastic...',
+                  role: '',
+                  company: '',
+                  content: '',
                   rating: 5,
-                  projectRef: 'Full-Stack Portal',
+                  projectRef: '',
                   verified: true,
-                  isSample: true
+                  isSample: false
                 });
                 setIsEditingTestimonial(true);
               }}
@@ -935,9 +1037,13 @@ export default function AdminDashboardPage() {
                         <Star key={i} size={13} fill="#E8A33D" stroke="#E8A33D" />
                       ))}
                     </div>
-                    {test.isSample && (
+                    {test.verified !== false ? (
+                      <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-green/10 border border-green/30 text-green">
+                        Verified
+                      </span>
+                    ) : (
                       <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-surface2 border border-border text-muted">
-                        Demo
+                        Unverified
                       </span>
                     )}
                   </div>

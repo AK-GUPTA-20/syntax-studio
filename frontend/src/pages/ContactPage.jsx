@@ -13,9 +13,13 @@ import {
   KeyRound,
   ExternalLink,
   Tag,
-  Sparkles
+  Sparkles,
+  Lock,
+  GitBranch,
+  Zap
 } from 'lucide-react';
 import { submitContact, getTeam, getServices, getSettings } from '../api/client';
+import { sanitizeInput, sanitizePromoCode, SafeExternalLink } from '../utils/security';
 import {
   auth,
   validateIndianPhone,
@@ -35,6 +39,10 @@ export default function ContactPage() {
   const [searchParams] = useSearchParams();
   const preselectedService = searchParams.get('service') || '';
   const preselectedFounder = searchParams.get('founder') || '';
+  const preselectedProject = searchParams.get('project') || searchParams.get('projectRef') || '';
+  const preselectedBudget = searchParams.get('budget') || '';
+  const preselectedTimeline = searchParams.get('timeline') || '';
+  const preselectedCode = searchParams.get('code') || '';
 
   const [team, setTeam] = useState([]);
   const [services, setServices] = useState([]);
@@ -44,16 +52,22 @@ export default function ContactPage() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   // Form inputs (NO placeholders used)
+  const initialMessage = preselectedProject
+    ? `Hi Syntax Studio team, I am interested in building a solution similar to ${preselectedProject}. Here are some specifics about our requirements:`
+    : preselectedFounder
+    ? `Hi ${preselectedFounder}, I would like to discuss a project with you.`
+    : '';
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     company: '',
     phone: '',
-    projectType: 'E-Commerce',
-    budget: '₹5,000 – ₹15,000 (Standard Website / Web App)',
-    timeline: '1 – 2 Months (Standard Turnaround)',
-    code: '',
-    message: preselectedFounder ? `Hi ${preselectedFounder}, I would like to discuss a project with you.` : '',
+    projectType: preselectedService || '',
+    budget: preselectedBudget || '',
+    timeline: preselectedTimeline || '',
+    code: preselectedCode || '',
+    message: initialMessage,
   });
 
   // Promo code & discount state
@@ -211,44 +225,74 @@ export default function ContactPage() {
     return () => unsubscribe();
   }, [formData.phone, formData.email]);
 
-  // Hardcoded Project Types
-  const projectTypes = [
-    'E-Commerce',
-    'Full-Stack Web Application',
-    'Business / Brand Website',
-    'Mobile App Development',
-    'Custom'
-  ];
+  // Dynamic Project Types, Budget & Timeline options from Firestore Settings
+  const projectTypes = (settings?.projectTypes && settings.projectTypes.length > 0)
+    ? settings.projectTypes
+    : (services && services.length > 0 ? services.map(s => s.title) : []);
 
-  // Budget options in INR (₹)
-  const budgetRanges = [
-    '₹2,500 – ₹5,000 (MVP / Quick Sprint)',
-    '₹5,000 – ₹15,000 (Standard Website / Web App)',
-    '₹15,000 – ₹35,000 (Custom SaaS / Full-Stack Platform)',
-    '₹35,000 – ₹70,000 (Enterprise Solution)',
-    '₹70,000+ (High-Scale Architecture / Dedicated Retainer)'
-  ];
+  const budgetRanges = (settings?.budgetRanges && settings.budgetRanges.length > 0)
+    ? settings.budgetRanges
+    : [];
 
-  // Target Timeline options
-  const timelineRanges = [
-    '< 1 Month (Fast-track Sprint)',
-    '1 – 2 Months (Standard Turnaround)',
-    '2 – 4 Months (Comprehensive Scope)',
-    '4+ Months (Phased Enterprise)',
-    'Flexible / Ongoing Retainer'
-  ];
+  const timelineRanges = (settings?.timelineRanges && settings.timelineRanges.length > 0)
+    ? settings.timelineRanges
+    : [];
 
-  // Sync preselectedService if matching a hardcoded option
+  // Sync URL parameters or default to first database options once loaded
   useEffect(() => {
-    if (preselectedService) {
-      const match = projectTypes.find(
-        (p) => p.toLowerCase() === preselectedService.toLowerCase() || preselectedService.toLowerCase().includes(p.toLowerCase())
-      );
-      if (match) {
-        setFormData((prev) => ({ ...prev, projectType: match }));
+    setFormData((prev) => {
+      let updated = { ...prev };
+      if (!updated.projectType) {
+        if (preselectedService) {
+          const match = projectTypes.find(
+            (p) => p.toLowerCase() === preselectedService.toLowerCase() || preselectedService.toLowerCase().includes(p.toLowerCase())
+          );
+          updated.projectType = match || preselectedService;
+        } else if (projectTypes.length > 0) {
+          updated.projectType = projectTypes[0];
+        }
+      }
+      if (!updated.budget) {
+        if (preselectedBudget) {
+          const matchB = budgetRanges.find(
+            (b) => b.toLowerCase().includes(preselectedBudget.toLowerCase()) || preselectedBudget.toLowerCase().includes(b.toLowerCase())
+          );
+          updated.budget = matchB || preselectedBudget;
+        } else if (budgetRanges.length > 0) {
+          updated.budget = budgetRanges[0];
+        }
+      }
+      if (!updated.timeline) {
+        if (preselectedTimeline) {
+          const matchT = timelineRanges.find(
+            (t) => t.toLowerCase().includes(preselectedTimeline.toLowerCase()) || preselectedTimeline.toLowerCase().includes(t.toLowerCase())
+          );
+          updated.timeline = matchT || preselectedTimeline;
+        } else if (timelineRanges.length > 0) {
+          updated.timeline = timelineRanges[0];
+        }
+      }
+      return updated;
+    });
+  }, [preselectedService, preselectedBudget, preselectedTimeline, settings, services]);
+
+  // Auto-apply promo code if passed in URL query param and settings available
+  useEffect(() => {
+    if (preselectedCode && settings) {
+      const activeCode = (settings?.promoCode || import.meta.env.VITE_DEFAULT_PROMO_CODE || 'syntaxStudio').trim();
+      const discountPercent = settings?.discountPercentage ?? (parseInt(import.meta.env.VITE_DEFAULT_DISCOUNT_PERCENT, 10) || 10);
+      const isPromoActive = settings?.promoActive !== false;
+
+      if (isPromoActive && preselectedCode.toLowerCase() === activeCode.toLowerCase()) {
+        setAppliedDiscount({
+          code: activeCode,
+          percent: discountPercent,
+          label: settings?.discountLabel || `${discountPercent}% Special Studio Discount`
+        });
+        setCodeFeedback(`✓ Promo code "${activeCode}" automatically applied! ${discountPercent}% discount activated.`);
       }
     }
-  }, [preselectedService]);
+  }, [preselectedCode, settings]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -511,17 +555,17 @@ export default function ContactPage() {
       }
 
       const payload = {
-        name: formData.name.trim(),
+        name: sanitizeInput(formData.name, 100),
         email: formData.email.trim().toLowerCase(),
-        company: formData.company.trim(),
+        company: sanitizeInput(formData.company, 120),
         phone: formData.phone.trim() ? phoneValidation.e164 : '',
-        projectType: formData.projectType,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        code: formData.code.trim(),
-        promoCode: formData.code.trim(),
+        projectType: sanitizeInput(formData.projectType, 50),
+        budget: sanitizeInput(formData.budget, 80),
+        timeline: sanitizeInput(formData.timeline, 80),
+        code: sanitizePromoCode(formData.code),
+        promoCode: sanitizePromoCode(formData.code),
         discountApplied: appliedDiscount ? `${appliedDiscount.percent}% OFF` : null,
-        message: formData.message.trim(),
+        message: sanitizeInput(formData.message, 3000),
         firebaseToken: tokenToUse,
         verificationMethod
       };
@@ -535,9 +579,9 @@ export default function ContactPage() {
         email: '',
         company: '',
         phone: '',
-        projectType: 'E-Commerce',
-        budget: '₹5,000 – ₹15,000 (Standard Website / Web App)',
-        timeline: '1 – 2 Months (Standard Turnaround)',
+        projectType: projectTypes[0] || '',
+        budget: budgetRanges[0] || '',
+        timeline: timelineRanges[0] || '',
         code: '',
         message: '',
       });
@@ -561,28 +605,65 @@ export default function ContactPage() {
   const hasAtLeastOneVerified = isEmailVerified || isPhoneVerified;
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+      {/* Ambient background glow */}
+      <div className="absolute top-24 left-1/4 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-80 right-10 w-96 h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
       {/* Invisible reCAPTCHA container for Phone Auth */}
       <div id="recaptcha-container"></div>
 
       {/* Header */}
-      <div className="max-w-3xl mb-14">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-mono mb-4 text-cyan">
+      <div className="max-w-4xl mb-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan/30 bg-cyan/5 text-xs font-mono mb-4 text-cyan backdrop-blur-sm">
+          <Sparkles size={13} className="text-cyan animate-pulse" />
           <span>{settings?.contactBadge || "// Start a Conversation"}</span>
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-text mb-4">
+        <h1 className="font-display text-4xl sm:text-6xl font-bold text-text mb-4 tracking-tight">
           {settings?.contactTitle || "Let's Build Something Exceptional"}
         </h1>
-        <p className="text-base text-muted leading-relaxed">
+        <p className="text-base sm:text-lg text-muted leading-relaxed max-w-2xl mb-8">
           {settings?.contactSubtitle || "Tell us about your project requirements, timeline, and goals. We review inquiries directly and respond with technical insights and an estimated scope within 24 hours."}
         </p>
+
+        {/* 4 Trust & Guarantee Highlights */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+          <div className="p-3 rounded-xl border border-border bg-surface/80 backdrop-blur-sm flex items-center gap-2.5">
+            <Lock size={16} className="text-amber shrink-0" />
+            <div>
+              <div className="font-bold text-text">100% NDA Safe</div>
+              <div className="text-[10px] text-muted">Full Confidentiality</div>
+            </div>
+          </div>
+          <div className="p-3 rounded-xl border border-border bg-surface/80 backdrop-blur-sm flex items-center gap-2.5">
+            <Clock size={16} className="text-cyan shrink-0" />
+            <div>
+              <div className="font-bold text-text">&lt;24h Response</div>
+              <div className="text-[10px] text-muted">Direct Founder SLA</div>
+            </div>
+          </div>
+          <div className="p-3 rounded-xl border border-border bg-surface/80 backdrop-blur-sm flex items-center gap-2.5">
+            <GitBranch size={16} className="text-green shrink-0" />
+            <div>
+              <div className="font-bold text-text">Day-1 Repo Transfer</div>
+              <div className="text-[10px] text-muted">Full IP Ownership</div>
+            </div>
+          </div>
+          <div className="p-3 rounded-xl border border-border bg-surface/80 backdrop-blur-sm flex items-center gap-2.5">
+            <ShieldCheck size={16} className="text-amber shrink-0" />
+            <div>
+              <div className="font-bold text-text">14-Day Warranty</div>
+              <div className="text-[10px] text-muted">Post-Launch Support</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Contact Form */}
         <div className="lg:col-span-7">
-          <div className="rounded-2xl border border-border bg-surface p-7 sm:p-10 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+          <div className="rounded-2xl border border-border bg-surface/90 backdrop-blur-md p-7 sm:p-10 shadow-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/60">
               <h2 className="font-display text-2xl font-bold text-text">
                 {settings?.contactFormTitle || "Project Inquiry Form"}
               </h2>
@@ -590,6 +671,18 @@ export default function ContactPage() {
                 // Strict Firebase Verification
               </span>
             </div>
+
+            {appliedDiscount && (
+              <div className="p-3.5 rounded-xl border border-green/40 bg-green/10 text-green flex items-center justify-between text-xs font-mono">
+                <span className="flex items-center gap-2 font-semibold">
+                  <Sparkles size={14} />
+                  <span>Promo Code Active: {appliedDiscount.percent}% discount will be applied to your quotation!</span>
+                </span>
+                <span className="px-2 py-0.5 rounded bg-green/20 text-green text-[10px] uppercase font-bold">
+                  {appliedDiscount.code}
+                </span>
+              </div>
+            )}
 
             {successMessage && (
               <div className="mb-6 p-4 rounded-xl border border-green/30 bg-green/10 text-green flex items-start gap-3 text-xs sm:text-sm font-mono">
@@ -1088,30 +1181,28 @@ export default function ContactPage() {
 
         {/* Right Info: Direct Founder Contact Cards */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Quick Commitments */}
-          <div className="p-6 rounded-xl border border-border bg-surface space-y-3 font-mono text-xs">
-            <p className="text-amber font-semibold uppercase tracking-wider">
-              {settings?.commitmentsBadge || "// Our Commitment"}
-            </p>
-            <div className="space-y-2 text-muted">
-              {(settings?.commitments || [
-                "Response guaranteed within 24 hours",
-                "Strict confidentiality & NDA compliant",
-                "Direct technical consultation with founders"
-              ]).map((c, i) => {
-                const icons = [Clock, ShieldCheck, CheckCircle];
-                const colors = ['text-cyan', 'text-green', 'text-amber'];
-                const Icon = icons[i % icons.length];
-                const col = colors[i % colors.length];
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <Icon size={14} className={col} />
-                    <span>{typeof c === 'string' ? c : c.text}</span>
-                  </div>
-                );
-              })}
+          {/* Quick Commitments (Dynamic from settings.commitments) */}
+          {settings?.commitments && settings.commitments.length > 0 && (
+            <div className="p-6 rounded-xl border border-border bg-surface space-y-3 font-mono text-xs">
+              <p className="text-amber font-semibold uppercase tracking-wider">
+                {settings?.commitmentsBadge || "// Our Commitment"}
+              </p>
+              <div className="space-y-2 text-muted">
+                {settings.commitments.map((c, i) => {
+                  const icons = [Clock, ShieldCheck, CheckCircle];
+                  const colors = ['text-cyan', 'text-green', 'text-amber'];
+                  const Icon = icons[i % icons.length];
+                  const col = colors[i % colors.length];
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <Icon size={14} className={col} />
+                      <span>{typeof c === 'string' ? c : c.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Dynamic Founder Contact Cards from Firestore */}
           {team.map((founder, idx) => (
@@ -1145,9 +1236,9 @@ export default function ContactPage() {
                 {founder.contact?.github && (
                   <div className="flex items-center gap-2 text-muted">
                     <Github size={13} className="text-amber" />
-                    <a href={founder.contact.github} target="_blank" rel="noreferrer" className="hover:text-text">
+                    <SafeExternalLink href={founder.contact.github} className="hover:text-text">
                       {founder.contact.github.replace('https://', '')}
-                    </a>
+                    </SafeExternalLink>
                   </div>
                 )}
               </div>

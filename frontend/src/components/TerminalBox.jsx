@@ -37,7 +37,7 @@ Your branch is up to date with 'origin/main'.
 
 Changes to be committed:
   modified:   services/high-concurrency-api.js
-  modified:   frontend/framer-motion-ui.tsx
+  modified:   frontend/src/pages/HomePage.jsx
   added:      deployments/cloud-firestore-rules
 
 Recent commits:

@@ -20,6 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { getTeamMemberBySlug, getProjects } from '../api/client';
+import { SafeExternalLink } from '../utils/security';
 
 export default function MemberPortfolioPage() {
   const { slug } = useParams();
@@ -195,37 +196,31 @@ export default function MemberPortfolioPage() {
             {/* Quick Action Links */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
               {member.contact?.resumeUrl && member.contact.resumeUrl !== '#' && (
-                <a
+                <SafeExternalLink
                   href={member.contact.resumeUrl}
-                  target="_blank"
-                  rel="noreferrer"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-sm"
                 >
                   <FileText size={14} />
                   <span>resume.pdf</span>
-                </a>
+                </SafeExternalLink>
               )}
               {member.contact?.github && (
-                <a
+                <SafeExternalLink
                   href={member.contact.github}
-                  target="_blank"
-                  rel="noreferrer"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-surface border border-border text-text hover:border-cyan/50 hover:text-cyan transition-all"
                 >
                   <Github size={14} />
                   <span>GitHub Profile</span>
-                </a>
+                </SafeExternalLink>
               )}
               {member.contact?.linkedin && (
-                <a
+                <SafeExternalLink
                   href={member.contact.linkedin}
-                  target="_blank"
-                  rel="noreferrer"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-surface border border-border text-text hover:border-cyan/50 hover:text-cyan transition-all"
                 >
                   <Linkedin size={14} />
                   <span>LinkedIn</span>
-                </a>
+                </SafeExternalLink>
               )}
               <Link
                 to={`/contact?founder=${encodeURIComponent(member.name)}`}
@@ -379,9 +374,9 @@ export default function MemberPortfolioPage() {
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border/60 text-xs font-mono">
                     {project.githubUrl && (
-                      <a href={project.githubUrl} target="_blank" rel="noreferrer" className="text-muted hover:text-text flex items-center gap-1">
+                      <SafeExternalLink href={project.githubUrl} className="text-muted hover:text-text flex items-center gap-1">
                         <Github size={13} /> Source
-                      </a>
+                      </SafeExternalLink>
                     )}
                     <Link to={`/projects/${project.slug}`} className="text-amber hover:underline flex items-center gap-1 font-semibold ml-auto">
                       Case Study <ArrowUpRight size={13} />

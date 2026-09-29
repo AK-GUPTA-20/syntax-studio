@@ -11,9 +11,14 @@ import {
   Cpu,
   Layers,
   Clock,
-  UserCheck
+  UserCheck,
+  Zap,
+  ShieldCheck,
+  Sparkles,
+  Gauge
 } from 'lucide-react';
 import { getProjectBySlug, getProjects, getSettings } from '../api/client';
+import { SafeExternalLink, safeWindowOpen } from '../utils/security';
 
 export default function ProjectDetailPage() {
   const { slug } = useParams();
@@ -127,15 +132,13 @@ export default function ProjectDetailPage() {
             <div className="space-y-6 pt-3">
               <div className="flex flex-wrap items-center gap-3">
                 {hasLiveDeploy ? (
-                  <a
+                  <SafeExternalLink
                     href={project.liveUrl}
-                    target="_blank"
-                    rel="noreferrer"
                     className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-sm"
                   >
                     <ExternalLink size={14} />
                     <span>Launch Live Deployment ↗</span>
-                  </a>
+                  </SafeExternalLink>
                 ) : (
                   <Link
                     to={unavailableUrl}
@@ -151,7 +154,7 @@ export default function ProjectDetailPage() {
               <div
                 onClick={() => {
                   if (hasLiveDeploy) {
-                    window.open(project.liveUrl, '_blank', 'noopener,noreferrer');
+                    safeWindowOpen(project.liveUrl);
                   } else {
                     navigate(unavailableUrl);
                   }
@@ -327,6 +330,84 @@ export default function ProjectDetailPage() {
             )}
           </section>
         )}
+
+        {/* Studio Production Standards Scorecard */}
+        <section className="p-6 sm:p-8 rounded-2xl border border-border bg-surface2/40 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="font-display text-xl font-bold text-text flex items-center gap-2">
+              <Gauge size={18} className="text-amber" />
+              Architecture & Production Standards
+            </h2>
+            <span className="text-[11px] font-mono text-cyan bg-cyan/10 border border-cyan/30 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
+              // Studio Benchmark
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+            <div className="p-4 rounded-xl border border-border bg-surface flex items-start gap-3">
+              <Zap size={18} className="text-amber shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-xs font-bold text-text">95+ Performance</div>
+                <div className="text-[11px] text-muted">Lighthouse Web Vitals</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border bg-surface flex items-start gap-3">
+              <Cpu size={18} className="text-cyan shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-xs font-bold text-text">&lt;100ms Backend</div>
+                <div className="text-[11px] text-muted">Database Query SLA</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border bg-surface flex items-start gap-3">
+              <ShieldCheck size={18} className="text-green shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-xs font-bold text-text">Strict Security</div>
+                <div className="text-[11px] text-muted">Sanitization & CSP</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border bg-surface flex items-start gap-3">
+              <CheckCircle2 size={18} className="text-amber shrink-0 mt-0.5" />
+              <div>
+                <div className="font-mono text-xs font-bold text-text">100% Hand-Coded</div>
+                <div className="text-[11px] text-muted">Clean Component Tree</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* High-Conversion "Want a System Like This?" Card */}
+        <section className="p-8 sm:p-10 rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface2 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 text-xs font-mono text-amber">
+              <Sparkles size={13} />
+              <span>Tailored Digital Engineering</span>
+            </div>
+            <h3 className="font-display text-2xl sm:text-3xl font-bold text-text">
+              Want a similar system built for your company?
+            </h3>
+            <p className="text-xs sm:text-sm text-muted leading-relaxed">
+              Skip agency bureaucracy. Speak directly with Akshat & Vasu to architect, design, and deploy a custom solution tailored to your product roadmap.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 w-full md:w-auto">
+            <Link
+              to={`/contact?service=${encodeURIComponent(project.category || 'Custom Engineering')}&project=${encodeURIComponent(project.slug)}`}
+              className="px-6 py-3 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all text-center shadow-glow-amber/20 shadow-md active:scale-95"
+            >
+              Build a Similar Project →
+            </Link>
+            <Link
+              to="/services"
+              className="px-5 py-3 rounded-lg text-xs font-mono text-muted hover:text-text border border-border bg-surface2 text-center transition-colors"
+            >
+              Explore Services
+            </Link>
+          </div>
+        </section>
       </div>
 
       {/* Next Project Footer Bar */}

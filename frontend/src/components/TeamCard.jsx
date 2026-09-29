@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Github, Linkedin, Mail, Award, BookOpen } from 'lucide-react';
+import { SafeExternalLink, sanitizeUrl } from '../utils/security';
 
-export default function TeamCard({ member }) {
+export default function TeamCard({ member, compact = false }) {
   const {
     slug,
     name,
@@ -16,7 +17,57 @@ export default function TeamCard({ member }) {
     contact = {}
   } = member;
 
-  const isAkshat = slug.includes('akshat');
+  const isAkshat = slug?.includes('akshat');
+
+  if (compact) {
+    return (
+      <Link
+        to={`/team/${slug}`}
+        className="group block rounded-2xl border border-border bg-surface hover:border-amber/60 hover:bg-surface2/60 transition-all duration-300 p-6 sm:p-7 shadow-lg hover:shadow-glow-amber/20 hover-lift cursor-pointer"
+        title={`Click to view ${name}'s full portfolio`}
+      >
+        <div className="flex items-start gap-4">
+          <div className="relative shrink-0">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-border group-hover:border-amber/70 bg-surface2 profile-pulse transition-colors">
+              <img
+                src={profileImage || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80"}
+                alt={name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+            <span
+              className={`absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${
+                isAkshat ? 'bg-cyan text-ink' : 'bg-amber text-ink'
+              }`}
+            >
+              Co-Founder
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-text group-hover:text-amber transition-colors truncate">
+                {name}
+              </h3>
+              <div className="w-8 h-8 rounded-lg bg-surface2 border border-border group-hover:border-amber/50 group-hover:bg-amber group-hover:text-ink flex items-center justify-center text-muted shrink-0 transition-all">
+                <ArrowUpRight size={15} />
+              </div>
+            </div>
+            <p className="text-xs font-mono text-amber font-medium mt-0.5">
+              {role}
+            </p>
+            <p className="text-xs text-muted mt-1 leading-snug">
+              {specialty}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-1 text-[11px] font-mono text-cyan group-hover:underline">
+              <span>view_portfolio()</span>
+              <ArrowUpRight size={12} />
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-surface overflow-hidden hover-lift flex flex-col justify-between transition-all duration-300">
@@ -109,26 +160,22 @@ export default function TeamCard({ member }) {
         <div className="pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {contact.github && (
-              <a
+              <SafeExternalLink
                 href={contact.github}
-                target="_blank"
-                rel="noreferrer"
                 className="text-muted hover:text-text transition-colors"
                 title="GitHub"
               >
                 <Github size={16} />
-              </a>
+              </SafeExternalLink>
             )}
             {contact.linkedin && (
-              <a
+              <SafeExternalLink
                 href={contact.linkedin}
-                target="_blank"
-                rel="noreferrer"
                 className="text-muted hover:text-text transition-colors"
                 title="LinkedIn"
               >
                 <Linkedin size={16} />
-              </a>
+              </SafeExternalLink>
             )}
             {contact.email && (
               <a

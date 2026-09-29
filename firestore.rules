@@ -1,8 +1,294 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: projects
+    // Document ID: auto-generated or slug string
+    // Fields:
+    //   - id: string (optional) - project identifier
+    //   - title: string (required) - project title
+    //   - slug: string (required) - unique URL-friendly slug
+    //   - category: string (required) - project category
+    //   - shortDescription: string (required) - brief summary
+    //   - overview: string (optional) - in-depth case study / overview
+    //   - author: string (optional) - project lead / creator
+    //   - technologies: list of strings (optional) - technology stack tags
+    //   - featured: bool (optional) - featured status flag
+    //   - client: string (optional) - client name
+    //   - link: string (optional) - live project URL
+    //   - github: string (optional) - repository link
+    //   - images: list of strings (optional) - gallery image URLs
+    //   - thumbnail: string (optional) - card cover image URL
+    //   - order: number (optional) - visual display ordering
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: services
+    // Document ID: auto-generated string
+    // Fields:
+    //   - id: string (optional) - service identifier
+    //   - title: string (required) - service title
+    //   - description: string (required) - service description
+    //   - icon: string (optional) - icon identifier or URL
+    //   - features: list of strings (optional) - key offerings
+    //   - order: number (optional) - display ordering weight
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: team / teamMembers
+    // Document ID: auto-generated or slug string
+    // Fields:
+    //   - id: string (optional) - team member identifier
+    //   - name: string (required) - team member full name
+    //   - slug: string (required) - profile URL slug
+    //   - role: string (required) - designation / title
+    //   - bio: string (optional) - member biography
+    //   - avatar: string (optional) - member portrait URL
+    //   - socials: map (optional) - social profile URLs
+    //   - skills: list of strings (optional) - skill tags
+    //   - order: number (optional) - ordering weight
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: testimonials
+    // Document ID: auto-generated string
+    // Fields:
+    //   - id: string (optional) - testimonial identifier
+    //   - clientName: string (required) - client name
+    //   - company: string (optional) - company name
+    //   - role: string (optional) - client designation
+    //   - quote: string (required) - testimonial content
+    //   - rating: number (optional) - star rating score
+    //   - avatar: string (optional) - client avatar URL
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: settings
+    // Document ID: 'general' (or setting group ID)
+    // Fields:
+    //   - id: string (required) - document id ('general')
+    //   - studioName: string (optional) - agency display name
+    //   - contactEmail: string (optional) - public contact email
+    //   - workingHours: string (optional) - business operation hours
+    //   - promoCode: string (optional) - active discount code
+    //   - discountPercentage: number (optional) - discount percentage
+    //   - discountLabel: string (optional) - marketing badge text
+    //   - promoActive: bool (optional) - discount activation toggle
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: blog / blogPosts
+    // Document ID: auto-generated or slug string
+    // Fields:
+    //   - id: string (optional) - article identifier
+    //   - title: string (required) - article headline
+    //   - slug: string (required) - post URL slug
+    //   - excerpt: string (optional) - summary excerpt
+    //   - content: string (required) - article body
+    //   - author: string (optional) - article author
+    //   - coverImage: string (optional) - article header image URL
+    //   - tags: list of strings (optional) - category/topic tags
+    //   - published: bool (optional) - published visibility flag
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
+    // Collection: contactMessages
+    // Document ID: auto-generated string
+    // Fields:
+    //   - name: string (required, 2-100 chars) - inquiry sender name
+    //   - email: string (required, valid email, 5-100 chars) - contact email
+    //   - message: string (required, 10-3000 chars) - project details / message
+    //   - company: string (optional, 0-120 chars) - organization name
+    //   - phone: string (optional, 0-30 chars) - normalized phone number
+    //   - projectType: string (optional, 0-100 chars) - inquiry category
+    //   - budget: string (optional, 0-100 chars) - budget selection
+    //   - timeline: string (optional, 0-100 chars) - delivery timeframe
+    //   - code: string (optional, 0-50 chars) - promo code
+    //   - promoCode: string (optional, 0-50 chars) - promo code alias
+    //   - discountApplied: string (optional, 0-50 chars) - applied discount text
+    //   - firebaseToken: string (optional, 0-3000 chars) - client auth token
+    //   - verificationMethod: string (optional, in ['email', 'phone', 'both'])
+    //   - verificationStatus: string (optional, 0-50 chars)
+    //   - isEmailVerified: bool (optional) - email verification flag
+    //   - isPhoneVerified: bool (optional) - phone verification flag
+    //   - verifiedUid: string (optional, must match request.auth.uid)
+    //   - uid: string (optional, must match request.auth.uid)
+    //   - status: string (optional, in ['unread', 'pending', 'new'])
+    //   - createdAt: timestamp / string (optional, 0-50 chars)
+    //   - id: string (optional, 0-128 chars)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Validate that all required fields are present in the request payload
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that the request payload contains ONLY explicitly allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate string field existence, type, and length bounds
+    function validStringLength(field, minLen, maxLen) {
+      return field in request.resource.data &&
+        request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // Validate optional string (if present and non-null, must be a string within length bounds)
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    // Validate email format and bounded length
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() >= 5 &&
+        email.size() <= 100 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Strict validator for client inquiry submissions
+    function isValidContactMessage(data) {
+      return hasOnlyAllowedFields([
+        'name', 'email', 'message', 'company', 'phone', 'projectType',
+        'budget', 'timeline', 'code', 'promoCode', 'discountApplied',
+        'firebaseToken', 'verificationMethod', 'verificationStatus',
+        'isEmailVerified', 'isPhoneVerified', 'verifiedUid', 'uid',
+        'status', 'createdAt', 'id'
+      ]) &&
+      hasRequiredFields(['name', 'email', 'message']) &&
+      // Required strings with strict length boundaries (DoS / resource exhaustion protection)
+      validStringLength('name', 2, 100) &&
+      isValidEmail(data.email) &&
+      validStringLength('message', 10, 3000) &&
+      // Optional strings with bounded sizes
+      isValidOptionalString('company', 0, 120) &&
+      isValidOptionalString('phone', 0, 30) &&
+      isValidOptionalString('projectType', 0, 100) &&
+      isValidOptionalString('budget', 0, 100) &&
+      isValidOptionalString('timeline', 0, 100) &&
+      isValidOptionalString('code', 0, 50) &&
+      isValidOptionalString('promoCode', 0, 50) &&
+      isValidOptionalString('discountApplied', 0, 50) &&
+      isValidOptionalString('firebaseToken', 0, 3000) &&
+      isValidOptionalString('verificationStatus', 0, 50) &&
+      isValidOptionalString('id', 0, 128) &&
+      // Enum validation for verification method
+      (!('verificationMethod' in data) || data.verificationMethod == null || data.verificationMethod in ['email', 'phone', 'both']) &&
+      // Status restriction: client can only set initial inquiry states (cannot mark unread messages as resolved/read)
+      (!('status' in data) || data.status == null || data.status in ['unread', 'pending', 'new']) &&
+      // Boolean type validation
+      (!('isEmailVerified' in data) || data.isEmailVerified == null || data.isEmailVerified is bool) &&
+      (!('isPhoneVerified' in data) || data.isPhoneVerified == null || data.isPhoneVerified is bool) &&
+      // UID spoofing protection: if verifiedUid or uid is provided, it must match authenticated UID
+      (!('verifiedUid' in data) || data.verifiedUid == null || data.verifiedUid == request.auth.uid) &&
+      (!('uid' in data) || data.uid == null || data.uid == request.auth.uid) &&
+      // Timestamp / ISO string validation
+      (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    // -------------------------------------------------------------
+    // Public Content Collections (Read-Only for Public Web Visitors)
+    // Direct client writes are COMPLETELY DENIED.
+    // All creation, editing, and deletion operations are executed
+    // by the backend server using the Firebase Admin SDK.
+    // -------------------------------------------------------------
+
+    // Projects catalog
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Services catalog
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Team members directory (supporting both 'team' and 'teamMembers')
+    match /team/{teamId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /teamMembers/{memberId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Testimonials
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Studio settings & configurations
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Blog articles & posts (supporting both 'blog' and 'blogPosts')
+    match /blog/{blogId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /blogPosts/{postId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------
+    // Client Inquiries (Write-Only Drop-Box for Authenticated Clients)
+    // Direct client reads are COMPLETELY DENIED to protect client
+    // confidentiality, phone numbers, and emails.
+    // Direct client updates and deletes are COMPLETELY DENIED.
+    // Only backend Firebase Admin SDK can read and manage inquiries.
+    // -------------------------------------------------------------
+    match /contactMessages/{messageId} {
+      // Complete client read lockdown (prevents PII exposure)
+      allow read: if false;
+      // Client updates & deletes are strictly forbidden
+      allow update, delete: if false;
+      // Creation allowed only for authenticated clients (Email Link / Phone OTP) with strict validation
+      allow create: if isAuthenticated() && isValidContactMessage(request.resource.data);
+    }
+
+    // -------------------------------------------------------------
+    // Default Deny Root Fallback
+    // Deny all reads and writes to any unspecified documents/collections.
+    // -------------------------------------------------------------
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

@@ -9,59 +9,90 @@ import {
   Zap,
   ArrowUpRight,
   BookOpen,
-  Award
+  Award,
+  CheckCircle2,
+  Sparkles,
+  ExternalLink,
+  Users,
+  Lock,
+  GitBranch,
+  Timer
 } from 'lucide-react';
-import { getSettings } from '../api/client';
+import { getSettings, getTeam } from '../api/client';
+import { SafeExternalLink } from '../utils/security';
+
+const VALUE_ICONS = [Zap, Cpu, Users, ShieldCheck, Layers, GitBranch];
 
 export default function AboutPage() {
   const [settings, setSettings] = useState(null);
+  const [team, setTeam] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSettings().then(setSettings).catch(() => null);
+    Promise.all([
+      getSettings().catch(() => null),
+      getTeam().catch(() => [])
+    ])
+      .then(([sett, teamData]) => {
+        setSettings(sett);
+        setTeam(teamData || []);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  const defaultValues = [
-    {
-      title: "Zero Template Bloat",
-      desc: "Every line of CSS, component code, and backend handler is intentionally crafted. No 50MB theme bundles slowing down your customers."
-    },
-    {
-      title: "Algorithmic Rigor",
-      desc: "With 850+ DSA problems solved between both founders, we apply computer science fundamentals to database indexing, write integrity, and latency reduction."
-    },
-    {
-      title: "Direct Founder Access",
-      desc: "You always communicate directly with the software engineers writing your code. Zero layers of account managers or junior interns."
-    },
-    {
-      title: "Production-Grade Security",
-      desc: "Input sanitization, helmet headers, strict CORS, rate limiting, and role-based access control are baseline standards on every build."
-    }
-  ];
+  const displayedValues = settings?.values || [];
+  const displayedStats = settings?.stats || [];
+  const foundersName = settings?.founders && settings.founders.length > 0
+    ? settings.founders.join(' & ')
+    : (team.length > 0 ? team.map(m => m.name).join(' & ') : "Akshat Gupta & Vasu Singhal");
 
-  const displayedValues = settings?.values && settings.values.length > 0 ? settings.values : defaultValues;
-  const foundersName = settings?.founders && settings.founders.length > 0 ? settings.founders.join(' & ') : "Akshat Gupta & Vasu Singhal";
-  const problemSolvingStat = settings?.stats?.[0]?.value ? `${settings.stats[0].value} DSA Solutions` : "850+ DSA Solutions";
+  const problemSolvingStat = displayedStats.find(s => s.label?.toLowerCase().includes('dsa') || s.label?.toLowerCase().includes('problem'))?.value
+    ? `${displayedStats.find(s => s.label?.toLowerCase().includes('dsa') || s.label?.toLowerCase().includes('problem')).value} Problems`
+    : (displayedStats[0]?.value ? `${displayedStats[0].value} Solved` : "850+ Solutions");
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+    <div className="relative pt-32 pb-24 max-w-7xl mx-auto px-5 sm:px-8">
+      {/* Ambient background glow */}
+      <div className="absolute top-24 left-1/3 w-96 h-96 bg-cyan/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-80 right-10 w-96 h-96 bg-amber/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
       {/* Page Header */}
-      <div className="max-w-3xl mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-mono mb-4 text-cyan">
+      <div className="max-w-4xl mb-16">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan/30 bg-cyan/5 text-xs font-mono mb-4 text-cyan backdrop-blur-sm">
+          <Sparkles size={13} className="text-cyan animate-pulse" />
           <span>{settings?.aboutBadge || "// Our Story & Philosophy"}</span>
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-text mb-6 leading-tight">
-          {settings?.tagline || "Engineering Websites That Move Businesses Forward"}
+        <h1 className="font-display text-4xl sm:text-6xl font-bold text-text mb-6 leading-tight tracking-tight">
+          {settings?.tagline || "Engineering Digital Systems That Move Businesses Forward"}
         </h1>
-        <p className="text-base sm:text-lg text-muted leading-relaxed">
-          {settings?.subtagline || "Syntax Studio was founded by two software engineers who believe modern businesses deserve better than sluggish, generic web templates and overpriced agency bureaucracy."}
+        <p className="text-base sm:text-xl text-muted leading-relaxed max-w-3xl">
+          {settings?.subtagline || "Syntax Studio was founded by software engineers who believe modern businesses deserve better than sluggish, generic web templates and overpriced agency bureaucracy."}
         </p>
       </div>
 
+      {/* Engineering Foundations Quick Stats (Dynamic from settings.stats) */}
+      {displayedStats.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
+          {displayedStats.slice(0, 4).map((st, i) => {
+            const colors = ['text-amber', 'text-cyan', 'text-green', 'text-amber'];
+            const color = colors[i % colors.length];
+            return (
+              <div key={i} className="p-5 rounded-2xl border border-border bg-surface/80 backdrop-blur-sm space-y-1">
+                <div className={`font-mono text-2xl sm:text-3xl font-bold ${color}`}>{st.value}</div>
+                <div className="font-display font-semibold text-text text-sm">{st.label}</div>
+                <p className="text-[11px] text-muted">Studio engineering benchmark & performance standard</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Narrative Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-20">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-24">
         <div className="lg:col-span-7 space-y-6 text-sm sm:text-base text-muted leading-relaxed">
-          <h2 className="font-display text-2xl font-bold text-text">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-text">
             {settings?.aboutStoryTitle || "The Studio Story"}
           </h2>
           {settings?.aboutStory ? (
@@ -69,26 +100,42 @@ export default function AboutPage() {
           ) : (
             <>
               <p>
-                Akshat Gupta (Galgotias University CSE, Data Science) and Vasu Singhal (ABES Engineering College IT) met through their shared obsession with full-stack software development and competitive programming.
+                Akshat Gupta (Galgotias University CSE, Data Science) and Vasu Singhal (ABES Engineering College IT) met through their shared obsession with full-stack software architecture, clean code standards, and competitive algorithms.
               </p>
               <p>
-                Between them, they have solved over 850+ algorithmic problems across LeetCode, CodeChef, and collegiate hackathons, while building production systems ranging from atomic banking ledgers to vendor e-commerce platforms.
+                Between them, they have solved hundreds of algorithmic challenges across LeetCode and CodeChef, and constructed production platforms spanning atomic banking ledgers, multi-vendor e-commerce marketplaces, and high-frequency real-time web applications.
               </p>
               <p>
-                They noticed a major pain point in the web development industry: businesses were forced to choose between bloated agency firms charging exorbitant fees for junior-level work, or low-cost freelancers building fragile templates that break the moment traffic spikes.
+                They observed a critical deficiency in the agency marketplace: modern businesses were forced to choose between massive corporate firms charging tens of thousands of dollars for work delegated to junior interns, or low-cost freelancers delivering fragile templates that break the moment traffic scales.
               </p>
               <p>
-                Syntax Studio was established to offer the ideal alternative: a lean, highly technical 2-person studio where founders communicate directly with clients and write every line of production code.
+                Syntax Studio was created as the lean, highly-technical alternative: a 2-person engineering studio where clients work directly with the system architects writing every single line of production code.
               </p>
             </>
           )}
+
+          {/* Key Engineering Tenets Checklist */}
+          <div className="pt-4 space-y-3 font-mono text-xs text-text/90">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-green shrink-0" />
+              <span>Full GitHub Repository & Intellectual Property Transfer on Day 1</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-green shrink-0" />
+              <span>Direct WhatsApp & Slack communication directly with the founding engineers</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-green shrink-0" />
+              <span>14-Day Free Post-Launch Warranty covering any edge-case bug fixes</span>
+            </div>
+          </div>
         </div>
 
         {/* Right Info Box */}
-        <div className="lg:col-span-5 p-7 rounded-2xl border border-border bg-surface space-y-6">
+        <div className="lg:col-span-5 p-7 sm:p-8 rounded-2xl border border-border bg-surface/80 backdrop-blur-md space-y-6 shadow-xl">
           <div className="flex items-center gap-3 pb-4 border-b border-border">
-            <div className="w-10 h-10 rounded-lg bg-surface2 border border-border flex items-center justify-center text-amber">
-              <Terminal size={20} />
+            <div className="w-11 h-11 rounded-xl bg-surface2 border border-border flex items-center justify-center text-amber shadow-sm">
+              <Terminal size={22} />
             </div>
             <div>
               <h3 className="font-display font-bold text-text text-base">{settings?.companyName || "Syntax Studio"}</h3>
@@ -97,75 +144,138 @@ export default function AboutPage() {
           </div>
 
           <div className="space-y-3 font-mono text-xs text-muted">
-            <div className="flex justify-between py-1.5 border-b border-border/50">
+            <div className="flex justify-between py-2 border-b border-border/50">
               <span className="text-cyan">Founders:</span>
               <span className="text-text font-semibold">{foundersName}</span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-border/50">
-              <span className="text-cyan">Primary Stack:</span>
-              <span className="text-text">{settings?.primaryStack || "React, Node, Express, Firebase"}</span>
+            <div className="flex justify-between py-2 border-b border-border/50">
+              <span className="text-cyan">Core Technologies:</span>
+              <span className="text-text text-right font-medium">React, Vite, Node, Express, Firebase</span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-border/50">
+            <div className="flex justify-between py-2 border-b border-border/50">
               <span className="text-cyan">Academic Centers:</span>
-              <span className="text-text">{settings?.academicCenters || "Galgotias & ABES Colleges"}</span>
+              <span className="text-text text-right">{settings?.academicCenters || "Galgotias Univ & ABES Eng College"}</span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-border/50">
+            <div className="flex justify-between py-2 border-b border-border/50">
               <span className="text-cyan">Problem Solving:</span>
               <span className="text-amber font-bold">{problemSolvingStat}</span>
             </div>
-            <div className="flex justify-between py-1.5">
-              <span className="text-cyan">Contact:</span>
+            <div className="flex justify-between py-2 border-b border-border/50">
+              <span className="text-cyan">NDA Policy:</span>
+              <span className="text-green font-semibold">100% Protected & Signed</span>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-cyan">Direct Email:</span>
               <span className="text-text">{settings?.contactEmail || "guptaakshat7795@gmail.com"}</span>
             </div>
           </div>
+
+          <Link
+            to="/contact"
+            className="w-full py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <span>Inquire Directly</span>
+            <ArrowUpRight size={14} />
+          </Link>
         </div>
       </section>
 
-      {/* Core Studio Values */}
-      <section className="mb-20">
-        <div className="max-w-2xl mb-12">
-          <p className="font-mono text-xs text-amber uppercase tracking-wider mb-2">
-            {settings?.principlesBadge || "// Principles"}
-          </p>
-          <h2 className="font-display text-3xl font-bold text-text">
-            {settings?.principlesTitle || "What We Believe"}
-          </h2>
+      {/* Core Studio Values (Dynamic from settings.values) */}
+      {displayedValues.length > 0 && (
+        <section className="mb-24">
+          <div className="max-w-2xl mb-12">
+            <p className="font-mono text-xs text-amber uppercase tracking-wider mb-2">
+              {settings?.principlesBadge || "// Principles"}
+            </p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-text">
+              {settings?.principlesTitle || "Our Engineering Standards"}
+            </h2>
+            <p className="text-sm text-muted mt-2 font-sans">
+              Non-negotiable benchmarks that govern every repository, pull request, and deployment.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {displayedValues.map((v, i) => {
+              const Icon = VALUE_ICONS[i % VALUE_ICONS.length];
+              return (
+                <div key={i} className="p-7 rounded-2xl border border-border bg-surface hover:border-border/80 transition-all hover-lift">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-surface2 border border-border flex items-center justify-center text-cyan font-mono text-xs font-bold">
+                      0{i + 1}
+                    </div>
+                    <Icon size={18} className="text-amber" />
+                  </div>
+                  <h3 className="font-display font-semibold text-text text-lg mb-2">
+                    {v.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted leading-relaxed font-sans">
+                    {v.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Meet Founders Profiles Section (Dynamic from team) */}
+      <section className="p-8 sm:p-12 rounded-2xl border border-border bg-gradient-to-br from-surface2/50 via-surface to-surface shadow-2xl space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan mb-2">
+              <Users size={14} />
+              <span>Direct Leadership</span>
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-text">
+              {settings?.meetFoundersTitle || `Meet the Partners: ${foundersName}`}
+            </h2>
+            <p className="text-sm text-muted max-w-xl mt-1">
+              {settings?.meetFoundersSubtitle || "Inspect each founder's personal profile, explore individual engineering projects, and review verified credentials."}
+            </p>
+          </div>
+          <Link
+            to="/team"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shrink-0 self-start sm:self-center shadow-sm"
+          >
+            <span>View All Profiles</span>
+            <ArrowUpRight size={14} />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {displayedValues.map((v, i) => (
-            <div key={i} className="p-6 sm:p-7 rounded-xl border border-border bg-surface hover-lift">
-              <div className="w-8 h-8 rounded-lg bg-surface2 border border-border flex items-center justify-center text-cyan mb-4 font-mono text-xs font-bold">
-                0{i + 1}
+        {/* Dynamic Founder Peek Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {team.map((member, idx) => (
+            <div key={member.id || idx} className="p-6 rounded-xl border border-border bg-surface space-y-4 hover-lift">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-text">{member.name}</h3>
+                  <p className="font-mono text-xs text-amber">{member.role}</p>
+                </div>
+                {member.education?.institution && (
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan/10 border border-cyan/30 text-cyan">
+                    {member.education.institution.split(' ')[0]}
+                  </span>
+                )}
               </div>
-              <h3 className="font-display font-semibold text-text text-lg mb-2">
-                {v.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-muted leading-relaxed">
-                {v.desc}
+              <p className="text-xs text-muted leading-relaxed line-clamp-3">
+                {member.shortBio || member.overview || member.specialty}
               </p>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-xs font-mono text-muted">
+                  {member.stats?.[0] ? `${member.stats[0].value} ${member.stats[0].label}` : 'Verified Partner'}
+                </span>
+                <Link
+                  to={`/team/${member.slug}`}
+                  className="text-xs font-mono text-amber hover:underline flex items-center gap-1"
+                >
+                  <span>View Full Portfolio</span>
+                  <ArrowUpRight size={13} />
+                </Link>
+              </div>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Meet Founders Teaser */}
-      <section className="p-8 sm:p-12 rounded-2xl border border-border bg-surface2/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-        <div>
-          <h2 className="font-display text-2xl font-bold text-text mb-2">
-            {settings?.meetFoundersTitle || `Meet ${foundersName}`}
-          </h2>
-          <p className="text-sm text-muted max-w-xl">
-            {settings?.meetFoundersSubtitle || "Read each founder's personal journey, inspect individual projects, and view their GitHub contributions."}
-          </p>
-        </div>
-        <Link
-          to="/team"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shrink-0"
-        >
-          <span>View Team Profiles</span>
-          <ArrowUpRight size={14} />
-        </Link>
       </section>
     </div>
   );
