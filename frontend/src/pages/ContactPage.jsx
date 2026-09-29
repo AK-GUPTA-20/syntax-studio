@@ -385,15 +385,21 @@ export default function ContactPage() {
         (err.message && err.message.toLowerCase().includes('billing-not-enabled'));
 
       if (isBilling) {
-        setPhoneError('SMS verification service is currently unavailable. Please verify via your Work Email address.');
+        setPhoneError('SMS verification is currently unavailable. Please verify via your Work Email address above.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setPhoneError('Domain not authorized in Firebase. Please add syntax-studio-sigma.vercel.app to Firebase Console > Authentication > Settings > Authorized domains, or verify via Work Email.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setPhoneError('Phone sign-in is disabled in Firebase Console. Please enable the Phone provider, or verify via Work Email.');
+      } else if (err.code === 'auth/captcha-check-failed' || err.code === 'auth/app-not-authorized') {
+        setPhoneError('reCAPTCHA verification check failed. Please refresh the page or verify instantly via Work Email.');
       } else if (err.code === 'auth/too-many-requests') {
-        setPhoneError('Too many attempts. Please wait a few minutes before requesting another OTP.');
+        setPhoneError('Too many attempts. Please wait a few minutes before requesting another OTP, or verify via Work Email.');
       } else if (err.code === 'auth/invalid-phone-number') {
-        setPhoneError('Invalid Indian phone number format for SMS delivery.');
+        setPhoneError('Invalid phone number format. Please enter a 10-digit Indian mobile number.');
       } else if (err.code === 'auth/quota-exceeded') {
-        setPhoneError('SMS quota reached. Please verify via your Work Email address.');
+        setPhoneError('SMS daily quota reached. Please verify instantly via your Work Email address.');
       } else {
-        setPhoneError(err.message || 'Failed to send OTP. Please verify your phone number and try again.');
+        setPhoneError(err.message || 'Failed to send OTP. Please verify your phone number or use Work Email verification.');
       }
     } finally {
       setPhoneSendingOtp(false);
