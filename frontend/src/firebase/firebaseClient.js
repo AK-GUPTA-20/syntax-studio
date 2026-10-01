@@ -3,9 +3,6 @@ import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
   onAuthStateChanged,
   signOut
 } from 'firebase/auth';
@@ -223,39 +220,6 @@ export async function sendPhoneOtp(e164Phone, verifier) {
  */
 export async function confirmPhoneOtp(confirmationResult, otpCode) {
   const result = await confirmationResult.confirm(otpCode);
-  const token = await result.user.getIdToken(true);
-  return { user: result.user, token };
-}
-
-/**
- * Send Firebase Passwordless Email Link verification
- */
-export async function sendEmailLinkVerification(email) {
-  const actionCodeSettings = {
-    url: `${window.location.origin}/contact?emailVerify=true`,
-    handleCodeInApp: true
-  };
-  await sendSignInLinkToEmail(auth, email.trim().toLowerCase(), actionCodeSettings);
-  window.localStorage.setItem('syntax_email_for_verification', email.trim().toLowerCase());
-}
-
-/**
- * Check if current URL is a Firebase Email Link
- */
-export function checkIsEmailSignInLink(href = window.location.href) {
-  return isSignInWithEmailLink(auth, href);
-}
-
-/**
- * Complete sign in / verification with Firebase Email Link
- */
-export async function completeEmailSignInLink(email, href = window.location.href) {
-  const emailToUse = email || window.localStorage.getItem('syntax_email_for_verification');
-  if (!emailToUse) {
-    throw new Error('Please provide the email address you used to request verification.');
-  }
-  const result = await signInWithEmailLink(auth, emailToUse, href);
-  window.localStorage.removeItem('syntax_email_for_verification');
   const token = await result.user.getIdToken(true);
   return { user: result.user, token };
 }

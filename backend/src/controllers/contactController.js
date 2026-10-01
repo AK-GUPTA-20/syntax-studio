@@ -1,11 +1,13 @@
 import { FirestoreService } from '../services/firestoreService.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import { sanitizeObject } from '../utils/sanitize.js';
 import { getAdminAuth } from '../firebase/firebaseAdmin.js';
+import { checkEmailVerification } from '../services/verificationService.js';
+import { sendConfirmationEmail } from '../services/emailService.js';
 import { config } from '../config/env.js';
 
 const contactService = new FirestoreService('contactMessages');
 const settingsService = new FirestoreService('settings');
+const usersService = new FirestoreService('users');
 
 export const submitContactForm = async (req, res, next) => {
   try {
@@ -19,9 +21,11 @@ export const submitContactForm = async (req, res, next) => {
       timeline,
       message,
       firebaseToken,
+      emailVerificationProof,
       verificationMethod,
       code,
-      promoCode
+      promoCode,
+      termsAccepted
     } = req.body;
 
     const cleanedEmail = (email || '').trim().toLowerCase();
@@ -35,41 +39,28 @@ export const submitContactForm = async (req, res, next) => {
       }
     }
 
-    // Verify token with Firebase Authentication
-    const auth = getAdminAuth();
-    let decodedToken;
-    try {
-      decodedToken = await auth.verifyIdToken(firebaseToken);
-    } catch (authError) {
-      console.error('Firebase token verification failed:', authError.message);
-      return ApiResponse.error(
-        res,
-        'Authentication verification failed: Invalid or expired Firebase verification token. Please verify email or phone again.',
-        null,
-        401
-      );
+    // 1. Verify Phone via Firebase Phone Auth if phone token is provided
+    let decodedToken = null;
+    let isPhoneVerified = false;
+    if (firebaseToken) {
+      try {
+        const auth = getAdminAuth();
+        decodedToken = await auth.verifyIdToken(firebaseToken);
+        const tokenPhone = decodedToken?.phone_number || '';
+        if (tokenPhone && normalizedPhone && (tokenPhone === normalizedPhone || tokenPhone.endsWith(normalizedPhone.slice(-10)))) {
+          isPhoneVerified = true;
+        }
+      } catch { /* non-fatal — phone verification optional */ }
     }
 
-    // Check whether email or phone or both are confirmed by Firebase
-    const tokenEmail = (decodedToken.email || '').toLowerCase();
-    const tokenPhone = decodedToken.phone_number || '';
+    // 2. Verify Email via Resend-based verification service
+    const isEmailVerified = await checkEmailVerification(cleanedEmail, emailVerificationProof);
 
-    const isEmailVerified = Boolean(
-      tokenEmail &&
-      tokenEmail === cleanedEmail &&
-      (decodedToken.email_verified || decodedToken.firebase?.sign_in_provider === 'passwordless' || decodedToken.firebase?.sign_in_provider === 'emailLink')
-    );
-
-    const isPhoneVerified = Boolean(
-      tokenPhone &&
-      normalizedPhone &&
-      (tokenPhone === normalizedPhone || tokenPhone.endsWith(normalizedPhone.slice(-10)))
-    );
-
+    // 3. Ensure at least one verification method succeeded
     if (!isEmailVerified && !isPhoneVerified) {
       return ApiResponse.error(
         res,
-        'Verification requirement not met: At least one contact method (Email or Indian Mobile Number) must be successfully verified with Firebase Authentication.',
+        'Verification requirement not met: At least one contact method (Work Email verified via Resend or Indian Mobile Number verified via Phone OTP) must be verified.',
         null,
         400
       );
@@ -114,21 +105,55 @@ export const submitContactForm = async (req, res, next) => {
       code: validatedCode,
       promoCode: validatedCode,
       discountApplied,
+      termsAccepted: Boolean(termsAccepted),
       message: (message || '').trim(),
       verificationStatus: 'verified',
       verificationMethod: verifiedMethod,
       isEmailVerified,
       isPhoneVerified,
-      verifiedUid: decodedToken.uid,
+      verifiedUid: decodedToken ? decodedToken.uid : null,
       status: 'unread',
       ip: req.ip,
       userAgent: req.headers['user-agent']
     };
 
     const created = await contactService.create(messageDoc);
+
+    // Update user database record if email is verified
+    if (isEmailVerified) {
+      try {
+        const existingUser = await usersService.getById(cleanedEmail);
+        if (existingUser) {
+          await usersService.update(cleanedEmail, {
+            isEmailVerified: true,
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          await usersService.create({
+            id: cleanedEmail,
+            email: cleanedEmail,
+            name: (name || '').trim(),
+            company: (company || '').trim(),
+            isEmailVerified: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // Send client confirmation email (non-fatal — never blocks submission)
+    sendConfirmationEmail({
+      to: cleanedEmail,
+      name: (name || '').trim(),
+      projectType: projectType || '',
+      budget: budget || '',
+      timeline: timeline || '',
+      inquiryId: created.id
+    }).catch(() => {});
+
     return ApiResponse.success(
       res,
-      'Thank you! Your verified inquiry has been received. Our founders will review it and respond within 24 hours.',
+      'Your inquiry has been received! We will get back to you within 24 hours. A confirmation email has been sent to your inbox.',
       { id: created.id, verificationMethod: verifiedMethod },
       201
     );

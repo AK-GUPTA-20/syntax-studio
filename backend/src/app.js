@@ -16,6 +16,7 @@ import blogRoutes from './routes/blogRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import verificationRoutes from './routes/verificationRoutes.js';
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // Error handling middleware
 app.use(notFoundHandler);

@@ -102,16 +102,13 @@ export default function AboutPage() {
           ) : (
             <>
               <p>
-                Akshat Gupta (Galgotias University CSE, Data Science) and Vasu Singhal (ABES Engineering College IT) met through their shared obsession with full-stack software architecture, clean code standards, and competitive algorithms.
+                We have engineered complex production platforms spanning multi-vendor e-commerce marketplaces, secure fintech ledgers, and real-time operational dashboards. Our approach relies on rigorous system design and clean code standards.
               </p>
               <p>
-                Between them, they have solved hundreds of algorithmic challenges across LeetCode and CodeChef, and constructed production platforms spanning atomic banking ledgers, multi-vendor e-commerce marketplaces, and high-frequency real-time web applications.
+                We saw a gap in the standard agency model: businesses are often forced to choose between expensive corporate firms that delegate work to junior devs, or low-cost freelancers offering fragile, unscalable templates.
               </p>
               <p>
-                They observed a critical deficiency in the agency marketplace: modern businesses were forced to choose between massive corporate firms charging tens of thousands of dollars for work delegated to junior interns, or low-cost freelancers delivering fragile templates that break the moment traffic scales.
-              </p>
-              <p>
-                Syntax Studio was created as the lean, highly-technical alternative: a 2-person engineering studio where clients work directly with the system architects writing every single line of production code.
+                Syntax Studio is our lean, specialized alternative. As a 2-person engineering team, we ensure you work directly with the developers writing your code. No bloated project management layers, just transparent communication and shipped software.
               </p>
             </>
           )}

@@ -102,7 +102,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-base sm:text-lg text-muted leading-relaxed max-w-2xl font-sans">
-                {settings?.subtagline || 'From custom full-stack web applications and high-conversion e-commerce engines to resilient REST APIs, we engineer digital products designed for speed, security, and measurable ROI.'}
+                {settings?.subtagline || 'We engineer custom web applications, e-commerce platforms, and resilient backend systems. Built for speed, scale, and clean architecture.'}
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -262,8 +262,8 @@ export default function HomePage() {
               {[1, 2].map((n) => <ServiceSkeleton key={n} />)}
             </div>
           ) : (
-            <div className={`grid grid-cols-1 ${services.length <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'} gap-8`}>
-              {services.map((service) => (
+            <div className={`grid grid-cols-1 ${services.filter(s => s.enabled !== false).length <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'} gap-8`}>
+              {services.filter(s => s.enabled !== false).map((service) => (
                 <ServiceCard key={service.id} service={service} />
               ))}
             </div>

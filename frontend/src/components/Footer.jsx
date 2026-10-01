@@ -60,6 +60,7 @@ export default function Footer() {
               <li><Link to="/about" className="hover:text-text transition-colors">About Our Studio</Link></li>
               <li><Link to="/team" className="hover:text-text transition-colors">The Founders</Link></li>
               <li><Link to="/contact" className="hover:text-text transition-colors">Start a Project</Link></li>
+              <li><Link to="/terms" className="hover:text-text transition-colors">Terms & Conditions</Link></li>
               <li><Link to="/admin" className="hover:text-text transition-colors">Admin Console</Link></li>
             </ul>
           </div>

@@ -179,7 +179,7 @@ service cloud.firestore {
       return hasOnlyAllowedFields([
         'name', 'email', 'message', 'company', 'phone', 'projectType',
         'budget', 'timeline', 'code', 'promoCode', 'discountApplied',
-        'firebaseToken', 'verificationMethod', 'verificationStatus',
+        'firebaseToken', 'emailVerificationProof', 'verificationMethod', 'verificationStatus',
         'isEmailVerified', 'isPhoneVerified', 'verifiedUid', 'uid',
         'status', 'createdAt', 'id'
       ]) &&
@@ -198,6 +198,7 @@ service cloud.firestore {
       isValidOptionalString('promoCode', 0, 50) &&
       isValidOptionalString('discountApplied', 0, 50) &&
       isValidOptionalString('firebaseToken', 0, 3000) &&
+      isValidOptionalString('emailVerificationProof', 0, 500) &&
       isValidOptionalString('verificationStatus', 0, 50) &&
       isValidOptionalString('id', 0, 128) &&
       // Enum validation for verification method

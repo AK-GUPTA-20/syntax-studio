@@ -15,7 +15,8 @@ import {
   Zap,
   ShieldCheck,
   Sparkles,
-  Gauge
+  Gauge,
+  Star
 } from 'lucide-react';
 import { getProjectBySlug, getProjects, getSettings } from '../api/client';
 import { SafeExternalLink, safeWindowOpen } from '../utils/security';
@@ -216,36 +217,85 @@ export default function ProjectDetailPage() {
           </section>
         )}
 
-        {/* Problem & Solution Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Problem */}
-          {project.problem && (
-            <div className="p-6 sm:p-7 rounded-xl border border-red/30 bg-surface">
-              <div className="flex items-center gap-2 text-xs font-mono text-red mb-3">
-                <AlertTriangle size={15} />
-                <span>THE CHALLENGE</span>
-              </div>
-              <h3 className="font-display text-lg font-bold text-text mb-2">The Problem</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                {project.problem}
-              </p>
+        {/* Customer Review & Testimonial */}
+        {(project.customerName || project.customerFeedback) && (
+          <section className="p-6 sm:p-8 rounded-2xl border border-amber/30 bg-surface relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-amber/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-2 text-xs font-mono text-amber mb-4">
+              <Star size={15} />
+              <span>CLIENT TESTIMONIAL</span>
             </div>
-          )}
+            
+            {/* Star Rating */}
+            {project.customerRating && (
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={18}
+                    className={i < project.customerRating ? 'text-amber fill-amber' : 'text-border'}
+                  />
+                ))}
+                <span className="ml-2 text-xs font-mono text-muted">{project.customerRating}/5</span>
+              </div>
+            )}
+            
+            {/* Feedback Quote */}
+            {project.customerFeedback && (
+              <blockquote className="text-base sm:text-lg text-text/90 leading-relaxed italic mb-6 pl-4 border-l-2 border-amber/40">
+                "{project.customerFeedback}"
+              </blockquote>
+            )}
+            
+            {/* Customer Info */}
+            <div className="flex items-center gap-3 pt-4 border-t border-border/60">
+              <div className="w-10 h-10 rounded-full bg-amber/20 border border-amber/40 flex items-center justify-center text-amber font-mono font-bold text-sm">
+                {(project.customerName || 'C').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-display font-semibold text-text text-sm">{project.customerName}</p>
+                {(project.customerDesignation || project.customerCompany) && (
+                  <p className="text-xs text-muted">
+                    {project.customerDesignation}{project.customerDesignation && project.customerCompany ? ', ' : ''}{project.customerCompany}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
-          {/* Solution */}
-          {project.solution && (
-            <div className="p-6 sm:p-7 rounded-xl border border-green/30 bg-surface">
-              <div className="flex items-center gap-2 text-xs font-mono text-green mb-3">
-                <Lightbulb size={15} />
-                <span>OUR ARCHITECTURE</span>
+        {/* Legacy Problem & Solution (shown only if no customer review) */}
+        {!project.customerName && !project.customerFeedback && (
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Problem */}
+            {project.problem && (
+              <div className="p-6 sm:p-7 rounded-xl border border-red/30 bg-surface">
+                <div className="flex items-center gap-2 text-xs font-mono text-red mb-3">
+                  <AlertTriangle size={15} />
+                  <span>THE CHALLENGE</span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-text mb-2">The Problem</h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {project.problem}
+                </p>
               </div>
-              <h3 className="font-display text-lg font-bold text-text mb-2">The Solution</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                {project.solution}
-              </p>
-            </div>
-          )}
-        </section>
+            )}
+
+            {/* Solution */}
+            {project.solution && (
+              <div className="p-6 sm:p-7 rounded-xl border border-green/30 bg-surface">
+                <div className="flex items-center gap-2 text-xs font-mono text-green mb-3">
+                  <Lightbulb size={15} />
+                  <span>OUR ARCHITECTURE</span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-text mb-2">The Solution</h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {project.solution}
+                </p>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Engineering Approach */}
         {project.approach && (

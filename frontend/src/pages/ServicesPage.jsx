@@ -149,9 +149,11 @@ export default function ServicesPage() {
       <section className="mb-24">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <p className="font-mono text-xs text-cyan uppercase tracking-wider mb-2">// Capabilities Catalog</p>
-          <h2 className="font-display text-3xl font-bold text-text">Specialized Engineering Modules</h2>
+          <h2 className="font-display text-3xl font-bold text-text">
+            {settings?.servicesCatalogTitle || "Specialized Engineering Modules"}
+          </h2>
           <p className="text-xs sm:text-sm text-muted mt-1 font-sans">
-            Modular services we assemble to create tailored solutions for your platform.
+            {settings?.servicesCatalogSubtitle || "Modular services we assemble to create tailored, high-performance solutions for your platform."}
           </p>
         </div>
 
@@ -166,7 +168,7 @@ export default function ServicesPage() {
           </div>
         ) : (
           <div className="space-y-12">
-            {services.map((service, index) => (
+            {services.filter(s => s.enabled !== false).map((service, index) => (
               <div
                 key={service.id || index}
                 className="rounded-2xl border border-border bg-surface p-5 sm:p-8 lg:p-10 hover-lift relative overflow-hidden"
@@ -174,9 +176,12 @@ export default function ServicesPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Left Overview Column */}
                   <div className="lg:col-span-6 space-y-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center flex-wrap gap-3">
                       <span className="font-mono text-xs text-amber font-semibold px-2.5 py-1 rounded bg-amber/10 border border-amber/30">
                         // {service.code || `0${index + 1}`}
+                      </span>
+                      <span className="font-mono text-xs text-amber font-bold border border-amber/20 px-2 py-0.5 rounded">
+                        {service.priceLabel ? service.priceLabel : service.price ? `₹${Number(service.price).toLocaleString('en-IN')}` : 'Contact for pricing'}
                       </span>
                       {service.typicalTimeline && (
                         <span className="font-mono text-xs text-muted flex items-center gap-1">
@@ -245,12 +250,16 @@ export default function ServicesPage() {
                         What We Deliver:
                       </h3>
                       <ul className="space-y-2 text-xs text-muted font-sans">
-                        {(service.deliverables || []).map((d, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <CheckCircle2 size={13} className="text-green shrink-0 mt-0.5" />
-                            <span>{d}</span>
-                          </li>
-                        ))}
+                        {(service.deliverables || []).map((d, idx) => {
+                          const deliverableText = typeof d === 'string' ? d : d.text;
+                          if (!deliverableText) return null;
+                          return (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle2 size={13} className="text-green shrink-0 mt-0.5" />
+                              <span>{deliverableText}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   </div>
@@ -284,17 +293,17 @@ export default function ServicesPage() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <h2 className="font-display text-3xl sm:text-4xl font-bold text-text">
-          {settings?.ctaTitle || "Ready to launch your project on schedule?"}
+          {settings?.ctaTitle || "Ready to ship high-performance software?"}
         </h2>
         <p className="text-sm text-muted max-w-lg mx-auto font-sans">
-          {settings?.ctaDescription || "Contact our team today to get a detailed technical architecture proposal and sprint timeline estimate."}
+          {settings?.ctaDescription || "Skip the agency bureaucracy. Speak directly with the engineers who will architect and build your product from day one."}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <Link
             to="/contact"
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-xs font-mono font-semibold bg-amber text-ink hover:bg-amber/90 transition-all shadow-md active:scale-95"
           >
-            <span>Start a Project</span>
+            <span>Request a Technical Proposal</span>
             <ArrowRight size={15} />
           </Link>
         </div>

@@ -32,6 +32,34 @@ export const getSettings = async (req, res, next) => {
     if (settings.promoActive === undefined) {
       settings.promoActive = true;
     }
+    if (!settings.termsAndConditions) {
+      settings.termsAndConditions = `1. ENGAGEMENT AND SCOPE OF WORK
+Syntax Studio provides custom software engineering, full-stack web development, and systems architecture services. All project timelines, deliverables, and technical specifications are defined in the mutually approved proposal or sprint milestone schedule.
+
+2. FIXED-PRICE MILESTONES & PAYMENT TERMS
+Every engagement is structured with transparent, milestone-based pricing. Work begins upon milestone agreement. Invoices are payable according to the agreed milestones. Zero hidden fees or unsolicited recurring retainers.
+
+3. INTELLECTUAL PROPERTY & CODE OWNERSHIP
+Upon full settlement of milestone payments, 100% of all intellectual property, proprietary source code, database architectures, and associated assets created for the client are irrevocably transferred to the client.
+
+4. CONFIDENTIALITY & NON-DISCLOSURE (NDA)
+Syntax Studio treats all client information, product specifications, trade secrets, and business logic with strict confidentiality under full mutual non-disclosure principles.
+
+5. POST-LAUNCH WARRANTY & SUPPORT
+All completed and deployed software modules include our standard 14-day post-launch warranty, covering bug fixes, deployment stability, and critical resolution of agreed deliverables.
+
+6. LIMITATION OF LIABILITY
+Syntax Studio strives for architectural resilience and 99.9% uptime compliance. Neither party shall be held liable for indirect, incidental, or consequential damages arising from third-party vendor outages (cloud hosts, payment gateways, external APIs).
+
+7. GOVERNING LAW & JURISDICTION
+These terms are governed in accordance with applicable laws. Any disputes shall be resolved through good-faith mediation prior to formal legal proceedings.`;
+    }
+    if (!settings.termsVersion) {
+      settings.termsVersion = '1.0';
+    }
+    if (!settings.termsLastUpdated) {
+      settings.termsLastUpdated = new Date().toISOString().split('T')[0];
+    }
     return ApiResponse.success(res, 'Studio settings retrieved', settings);
   } catch (error) {
     next(error);

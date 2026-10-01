@@ -187,3 +187,8 @@ Visit **`http://localhost:5173`** in your browser!
 | `DELETE`| `/api/contact/:id` | Delete inquiry | Yes (Admin) |
 | `POST` | `/api/auth/login` | Admin login | No |
 | `GET` | `/api/auth/verify` | Verify current admin token | Yes (Admin) |
+| `POST` | `/api/verification/send-code` | Send Resend email verification code & link | No |
+| `POST` | `/api/verification/verify-otp` | Verify 6-digit email OTP | No |
+| `GET` | `/api/verification/verify-email` | Clickable verification link handler | No |
+| `GET` | `/api/verification/status` | Check email verification status | No |
+

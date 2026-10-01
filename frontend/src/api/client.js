@@ -307,3 +307,42 @@ export const deleteTestimonialApi = async (id, token) => {
   return res.data;
 };
 
+// Pricing plans (convenience wrapper)
+export const getPricingPlans = async () => {
+  const res = await request('/services');
+  return (res.data || []).filter(s => s.enabled !== false);
+};
+
+// Email Verification APIs (Resend)
+export const sendVerificationEmailApi = async (email) => {
+  const res = await request('/verification/send-code', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  return res;
+};
+
+export const resendVerificationEmailApi = async (email) => {
+  const res = await request('/verification/resend', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  return res;
+};
+
+export const verifyEmailOtpApi = async (email, otp) => {
+  const res = await request('/verification/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  });
+  return res;
+};
+
+export const checkEmailVerificationStatusApi = async (email, proof = '') => {
+  const params = new URLSearchParams({ email });
+  if (proof) params.append('proof', proof);
+  const res = await request(`/verification/status?${params.toString()}`);
+  return res.data;
+};
+
+

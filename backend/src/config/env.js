@@ -25,4 +25,9 @@ export const config = {
   },
   promoCode: process.env.PROMO_CODE || 'syntaxStudio',
   discountPercentage: parseInt(process.env.DISCOUNT_PERCENT, 10) || 10,
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
+  resend: {
+    apiKey: (process.env.RESEND_API_KEY || '').trim(),
+    fromEmail: (process.env.RESEND_FROM_EMAIL || 'Support Studio <noreply@support-studio.work.gd>').trim(),
+  },
 };

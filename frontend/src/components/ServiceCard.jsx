@@ -10,17 +10,29 @@ export default function ServiceCard({ service }) {
     problemsSolved = [],
     deliverables = [],
     technologies = [],
-    typicalTimeline
+    typicalTimeline,
+    priceLabel,
+    price,
+    enabled
   } = service;
+  
+  const displayPrice = priceLabel ? priceLabel : price ? `₹${Number(price).toLocaleString('en-IN')}` : null;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-6 sm:p-7 hover-lift flex flex-col justify-between transition-all duration-300">
       <div>
         {/* Header with service index */}
         <div className="flex items-center justify-between mb-4">
-          <span className="font-mono text-xs text-amber font-semibold px-2.5 py-1 rounded bg-amber/10 border border-amber/30">
-            // {code}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-amber font-semibold px-2.5 py-1 rounded bg-amber/10 border border-amber/30">
+              // {code}
+            </span>
+            {enabled === false && (
+              <span className="font-mono text-[10px] text-muted uppercase tracking-wider px-2 py-0.5 rounded bg-surface2 border border-border">
+                Unavailable
+              </span>
+            )}
+          </div>
           {typicalTimeline && (
             <span className="font-mono text-xs text-muted">
               {typicalTimeline}
@@ -28,9 +40,17 @@ export default function ServiceCard({ service }) {
           )}
         </div>
 
-        <h3 className="font-display text-xl font-bold text-text mb-3">
+        <h3 className="font-display text-xl font-bold text-text mb-1.5">
           {title}
         </h3>
+        
+        {displayPrice && (
+          <div className="mb-3">
+            <span className="font-mono text-sm text-amber font-bold">
+              {displayPrice}
+            </span>
+          </div>
+        )}
         <p className="text-sm text-muted leading-relaxed mb-6">
           {shortDescription}
         </p>

@@ -21,3 +21,15 @@ export const contactLimiter = rateLimit({
     message: 'Contact form rate limit exceeded. Please try again later or reach out directly by email.'
   }
 });
+
+export const verificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'development' ? 100 : 25, // limit each IP to 25 verification actions per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many verification attempts from this IP. Please try again after 15 minutes.'
+  }
+});
+

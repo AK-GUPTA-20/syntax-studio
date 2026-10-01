@@ -134,6 +134,20 @@ export default function StudioSettingsManager({
         badge: `${settings?.discountPercentage ?? 10}% OFF`
       },
       {
+        id: 'tiers',
+        label: 'Engagement Tiers',
+        desc: 'Pricing tiers displayed on services page',
+        icon: Layers,
+        badge: `${(settings?.engagementTiers || []).length} Tiers`
+      },
+      {
+        id: 'terms',
+        label: 'Terms & Conditions',
+        desc: 'Legal terms shown on contact form & terms page',
+        icon: FileText,
+        badge: settings?.termsAndConditions ? 'Published' : 'Draft'
+      },
+      {
         id: 'custom',
         label: 'Custom Sections & Settings',
         desc: 'Create new sections & custom key-value settings',
@@ -268,7 +282,7 @@ export default function StudioSettingsManager({
             )}
           </div>
           <p className="text-xs font-mono text-muted">
-            Divided into 10 structured sub-settings. Modify branding, section titles, capabilities, or add new custom sections.
+            Divided into 12 structured sub-settings. Modify branding, section titles, capabilities, or add new custom sections.
           </p>
         </div>
 
@@ -1434,7 +1448,271 @@ export default function StudioSettingsManager({
               </div>
             )}
 
-            {/* 11. SUB-SETTING: CUSTOM SECTIONS & ADDITIONAL SETTINGS */}
+            {/* 11. SUB-SETTING: ENGAGEMENT TIERS */}
+            {activeSubTab === 'tiers' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-cyan/10 border border-cyan/30">
+                  <div>
+                    <h4 className="font-display font-bold text-text text-sm">
+                      Engagement Tiers
+                    </h4>
+                    <p className="text-[11px] text-muted">
+                      Configure pricing packages and service tiers.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newTier = {
+                        id: `tier_${Date.now()}`,
+                        name: 'New Tier',
+                        price: '₹0',
+                        badge: 'New',
+                        target: 'Target audience',
+                        timeline: '1-2 weeks',
+                        popular: false,
+                        ctaText: 'Start Project',
+                        features: ['Feature 1', 'Feature 2']
+                      };
+                      updateSetting('engagementTiers', [...(settings.engagementTiers || []), newTier]);
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-amber text-ink text-xs font-mono font-bold hover:bg-amber/90 transition-all flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    <span>add_tier()</span>
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {(settings.engagementTiers || []).map((tier, idx) => (
+                    <div key={tier.id || idx} className="p-5 rounded-xl border border-border bg-surface2/40 space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1 rounded bg-amber/15 text-amber">
+                            <Layers size={14} />
+                          </span>
+                          <h5 className="font-display font-bold text-text text-sm">{tier.name || 'Unnamed Tier'}</h5>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm('Delete this tier?')) return;
+                            const newTiers = (settings.engagementTiers || []).filter((_, i) => i !== idx);
+                            updateSetting('engagementTiers', newTiers);
+                          }}
+                          className="p-1.5 rounded text-red hover:bg-red/10 transition-colors"
+                          title="Delete tier"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-cyan mb-1.5">TIER NAME</label>
+                          <input
+                            type="text"
+                            value={tier.name || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], name: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-cyan mb-1.5">PRICE RANGE</label>
+                          <input
+                            type="text"
+                            value={tier.price || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], price: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-cyan mb-1.5">BADGE</label>
+                          <input
+                            type="text"
+                            value={tier.badge || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], badge: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-cyan mb-1.5">TIMELINE</label>
+                          <input
+                            type="text"
+                            value={tier.timeline || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], timeline: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-cyan mb-1.5">TARGET AUDIENCE</label>
+                          <input
+                            type="text"
+                            value={tier.target || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], target: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-cyan mb-1.5">CTA TEXT</label>
+                          <input
+                            type="text"
+                            value={tier.ctaText || ''}
+                            onChange={(e) => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], ctaText: e.target.value };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="w-full px-3 py-2 rounded bg-surface2 border border-border text-text font-mono focus:border-amber"
+                          />
+                        </div>
+                        <div className="flex items-end pb-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={tier.popular || false}
+                              onChange={(e) => {
+                                const newTiers = [...(settings.engagementTiers || [])];
+                                newTiers[idx] = { ...newTiers[idx], popular: e.target.checked };
+                                updateSetting('engagementTiers', newTiers);
+                              }}
+                              className="rounded bg-surface2 border-border text-amber focus:ring-amber focus:ring-offset-surface"
+                            />
+                            <span className="text-text font-mono">Mark as Most Popular</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-cyan">FEATURES & DELIVERABLES</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTiers = [...(settings.engagementTiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], features: [...(newTiers[idx].features || []), 'New Feature'] };
+                              updateSetting('engagementTiers', newTiers);
+                            }}
+                            className="text-[10px] text-amber hover:text-amber/80 flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Add Feature
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {(tier.features || []).map((feat, fIdx) => (
+                            <div key={fIdx} className="flex items-center gap-2">
+                              <span className="text-muted shrink-0 text-[10px] w-4">{fIdx + 1}.</span>
+                              <input
+                                type="text"
+                                value={feat}
+                                onChange={(e) => {
+                                  const newTiers = [...(settings.engagementTiers || [])];
+                                  const newFeats = [...(newTiers[idx].features || [])];
+                                  newFeats[fIdx] = e.target.value;
+                                  newTiers[idx] = { ...newTiers[idx], features: newFeats };
+                                  updateSetting('engagementTiers', newTiers);
+                                }}
+                                className="flex-1 px-3 py-1.5 rounded bg-surface border border-border text-text font-mono text-xs focus:border-amber"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newTiers = [...(settings.engagementTiers || [])];
+                                  const newFeats = [...(newTiers[idx].features || [])].filter((_, i) => i !== fIdx);
+                                  newTiers[idx] = { ...newTiers[idx], features: newFeats };
+                                  updateSetting('engagementTiers', newTiers);
+                                }}
+                                className="p-1.5 text-muted hover:text-red transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(settings.engagementTiers || []).length === 0 && (
+                    <div className="p-8 text-center border border-dashed border-border rounded-xl font-mono text-xs text-muted">
+                      No tiers added yet. Click "add_tier()" to create one.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 12. SUB-SETTING: TERMS & CONDITIONS */}
+            {activeSubTab === 'terms' && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-cyan mb-1.5">TERMS VERSION</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 1.0"
+                      value={settings.termsVersion || ''}
+                      onChange={(e) => updateSetting('termsVersion', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-surface2 border border-border text-text font-mono focus:border-amber"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-cyan mb-1.5">LAST UPDATED</label>
+                    <div className="w-full px-3 py-2 rounded-lg bg-surface border border-border/50 text-muted font-mono flex items-center justify-between">
+                      <span>{settings.termsLastUpdated || 'Never'}</span>
+                      <span className="text-[10px] text-cyan">Auto-updates on save</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-cyan">TERMS & CONDITIONS CONTENT</label>
+                    <span className="text-[10px] text-muted">
+                      {(settings.termsAndConditions || '').length} characters
+                    </span>
+                  </div>
+                  <textarea
+                    rows={12}
+                    value={settings.termsAndConditions || ''}
+                    onChange={(e) => {
+                      updateSetting('termsAndConditions', e.target.value);
+                      updateSetting('termsLastUpdated', new Date().toISOString().split('T')[0]);
+                    }}
+                    placeholder="Enter the full terms and conditions here..."
+                    className="w-full px-4 py-3 rounded-xl bg-surface2 border border-border text-text font-mono text-xs resize-y focus:border-amber"
+                  ></textarea>
+                </div>
+
+                <div className="p-4 rounded-xl border border-border bg-surface2/40">
+                  <p className="text-amber font-bold mb-2">// PREVIEW</p>
+                  <div className="p-4 rounded-lg bg-surface border border-border/50 max-h-48 overflow-y-auto font-mono text-xs text-muted whitespace-pre-wrap">
+                    {settings.termsAndConditions || 'No terms content provided yet.'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 13. SUB-SETTING: CUSTOM SECTIONS & ADDITIONAL SETTINGS */}
             {activeSubTab === 'custom' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-cyan/10 border border-cyan/30">

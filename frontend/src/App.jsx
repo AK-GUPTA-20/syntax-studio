@@ -14,6 +14,7 @@ import MemberPortfolioPage from './pages/MemberPortfolioPage';
 import ContactPage from './pages/ContactPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import ProjectNotAvailablePage from './pages/ProjectNotAvailablePage';
+import TermsPage from './pages/TermsPage';
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/team" element={<TeamPage />} />
           <Route path="/team/:slug" element={<MemberPortfolioPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/not-available" element={<ProjectNotAvailablePage />} />
           <Route path="/404" element={<ProjectNotAvailablePage />} />

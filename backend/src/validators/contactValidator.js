@@ -39,8 +39,19 @@ export const validateContactInput = [
     .notEmpty().withMessage('Project details / message is required')
     .isLength({ min: 10, max: 3000 }).withMessage('Message must be between 10 and 3000 characters'),
   body('firebaseToken')
-    .trim()
-    .notEmpty().withMessage('Firebase authentication token is required to verify your contact information'),
+    .optional({ checkFalsy: true })
+    .trim(),
+  body('emailVerificationProof')
+    .optional({ checkFalsy: true })
+    .trim(),
+  body().custom((reqBody) => {
+    const hasFirebase = Boolean(reqBody.firebaseToken && reqBody.firebaseToken.trim());
+    const hasEmailProof = Boolean(reqBody.emailVerificationProof && reqBody.emailVerificationProof.trim());
+    if (!hasFirebase && !hasEmailProof) {
+      throw new Error('Verification required: Please verify your Work Email via Resend or your Indian Mobile Number via Phone OTP');
+    }
+    return true;
+  }),
   body('code')
     .optional()
     .trim()
@@ -49,6 +60,9 @@ export const validateContactInput = [
     .optional()
     .trim()
     .isLength({ max: 50 }),
+  body('termsAccepted')
+    .optional()
+    .isBoolean().withMessage('Terms acceptance must be a boolean value'),
 
   (req, res, next) => {
     const errors = validationResult(req);
