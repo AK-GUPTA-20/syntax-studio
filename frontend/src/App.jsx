@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import QuickActionPill from './components/QuickActionPill';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -15,13 +16,24 @@ import ContactPage from './pages/ContactPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import ProjectNotAvailablePage from './pages/ProjectNotAvailablePage';
 import TermsPage from './pages/TermsPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostDetailPage from './pages/BlogPostDetailPage';
 
-// Scroll to top on route change
+// Scroll to top on route change or scroll to hash anchor
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash.replace('#', ''));
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 50);
+      return;
+    }
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, hash]);
   return null;
 }
 
@@ -67,6 +79,8 @@ export default function App() {
           <Route path="/team" element={<TeamPage />} />
           <Route path="/team/:slug" element={<MemberPortfolioPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostDetailPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/not-available" element={<ProjectNotAvailablePage />} />
@@ -75,6 +89,7 @@ export default function App() {
         </Routes>
       </main>
 
+      <QuickActionPill />
       <Footer />
     </div>
   );

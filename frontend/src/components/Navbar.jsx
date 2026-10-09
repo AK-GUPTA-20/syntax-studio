@@ -29,8 +29,10 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Work', path: '/projects' },
     { name: 'Services', path: '/services' },
+    { name: 'Estimator', path: '/services#estimator' },
     { name: 'About', path: '/about' },
     { name: 'Team', path: '/team' },
+    { name: 'Blog', path: '/blog' },
     { name: 'Contact', path: '/contact' },
   ];
 
@@ -57,9 +59,6 @@ export default function Navbar() {
             ) : (
               <>syntax<span className="text-amber">.studio</span></>
             )}
-          </span>
-          <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-widest text-cyan bg-cyan/10 border border-cyan/30 rounded-full ml-1">
-            {settings?.brandSubtitle || '2-person agency'}
           </span>
         </Link>
 
@@ -102,10 +101,6 @@ export default function Navbar() {
 
         {/* CTA & Admin Links */}
         <div className="hidden md:flex items-center gap-3">
-          <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green/10 border border-green/30 text-[11px] font-mono text-green">
-            <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse"></span>
-            <span>Sprint Slots Open</span>
-          </span>
           <Link
             to="/admin"
             className="p-2 rounded-lg border border-border bg-surface hover:border-amber/40 hover:text-amber text-muted transition-colors"

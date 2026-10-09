@@ -30,7 +30,9 @@ import {
   XCircle,
   ChevronUp,
   ChevronDown,
-  GripVertical
+  GripVertical,
+  BookOpen,
+  Activity
 } from 'lucide-react';
 import {
   loginAdmin,
@@ -55,14 +57,28 @@ import {
   updateTestimonialApi,
   deleteTestimonialApi,
   getSettings,
-  updateSettingsApi
+  updateSettingsApi,
+  getBlogPosts,
+  createBlogPostApi,
+  updateBlogPostApi,
+  deleteBlogPostApi,
+  getAuditLogsApi,
+  getSystemHealthApi
 } from '../api/client';
 import ImageUploader from '../components/ImageUploader';
 import StudioSettingsManager from '../components/StudioSettingsManager';
+import AdminOverview from '../components/admin/AdminOverview';
+import AdminInquiriesManager from '../components/admin/AdminInquiriesManager';
+import AdminBlogManager from '../components/admin/AdminBlogManager';
+import AdminAuditLogs from '../components/admin/AdminAuditLogs';
 import { sanitizeUrl, SafeExternalLink, sanitizeInput } from '../utils/security';
 
 export default function AdminDashboardPage() {
-  const [token, setToken] = useState(() => localStorage.getItem('syntax_admin_token') || '');
+  const [token, setToken] = useState(() => {
+    // Security: Purge persistent localStorage tokens to prevent token harvesting
+    try { localStorage.removeItem('syntax_admin_token'); } catch (e) {}
+    return sessionStorage.getItem('syntax_admin_session_token') || '';
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -95,6 +111,10 @@ export default function AdminDashboardPage() {
   const [services, setServices] = useState([]);
   const [team, setTeam] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [healthData, setHealthData] = useState(null);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -181,6 +201,7 @@ export default function AdminDashboardPage() {
         setIsAuthenticated(true);
       } catch (err) {
         try {
+          sessionStorage.removeItem('syntax_admin_session_token');
           localStorage.removeItem('syntax_admin_token');
         } catch (e) {}
         setToken('');
@@ -199,20 +220,27 @@ export default function AdminDashboardPage() {
   async function loadAllData() {
     setLoadingData(true);
     try {
-      const [inqData, projData, servData, teamData, testData, settData] = await Promise.all([
+      const [inqData, projData, servData, teamData, testData, settData, blogData, auditData, healthRes] = await Promise.allSettled([
         getInquiries(token),
         getProjects(),
         getServices(),
         getTeam(),
         getTestimonials(),
-        getSettings()
+        getSettings(),
+        getBlogPosts({ includeDrafts: true }),
+        getAuditLogsApi(token, 100),
+        getSystemHealthApi()
       ]);
-      setInquiries(inqData || []);
-      setProjects(projData || []);
-      setServices(servData || []);
-      setTeam(teamData || []);
-      setTestimonials(testData || []);
-      setSettings(settData || null);
+
+      setInquiries(inqData.status === 'fulfilled' ? inqData.value || [] : []);
+      setProjects(projData.status === 'fulfilled' ? projData.value || [] : []);
+      setServices(servData.status === 'fulfilled' ? servData.value || [] : []);
+      setTeam(teamData.status === 'fulfilled' ? teamData.value || [] : []);
+      setTestimonials(testData.status === 'fulfilled' ? testData.value || [] : []);
+      setSettings(settData.status === 'fulfilled' ? settData.value || null : null);
+      setBlogPosts(blogData.status === 'fulfilled' ? blogData.value || [] : []);
+      setAuditLogs(auditData.status === 'fulfilled' ? auditData.value || [] : []);
+      setHealthData(healthRes.status === 'fulfilled' ? healthRes.value || null : null);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       showToast('Error refreshing data');
@@ -230,8 +258,9 @@ export default function AdminDashboardPage() {
 
     try {
       const res = await loginAdmin(password);
-      const userToken = res.token || 'akshat0021';
-      localStorage.setItem('syntax_admin_token', userToken);
+      const userToken = res.token || '';
+      sessionStorage.setItem('syntax_admin_session_token', userToken);
+      try { localStorage.removeItem('syntax_admin_token'); } catch (e) {}
       try {
         sessionStorage.removeItem('syntax_admin_failures');
         sessionStorage.removeItem('syntax_admin_lockout_until');
@@ -265,6 +294,7 @@ export default function AdminDashboardPage() {
 
   const handleLogout = (reason = 'Logged out successfully') => {
     try {
+      sessionStorage.removeItem('syntax_admin_session_token');
       localStorage.removeItem('syntax_admin_token');
     } catch (e) {}
     setToken('');
@@ -310,6 +340,66 @@ export default function AdminDashboardPage() {
       }
       setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
     });
+  };
+
+  const handleUpdateInquiryData = async (id, data) => {
+    try {
+      await updateInquiry(id, data, token);
+      setInquiries((prev) =>
+        prev.map((inq) => (inq.id === id ? { ...inq, ...data } : inq))
+      );
+      showToast('Inquiry record updated');
+    } catch (err) {
+      showToast(err.message || 'Failed to update inquiry');
+      throw err;
+    }
+  };
+
+  // Blog post save & delete
+  const handleSaveBlogPost = async (postData) => {
+    try {
+      if (postData.id) {
+        await updateBlogPostApi(postData.id, postData, token);
+        showToast('Blog dispatch updated successfully');
+      } else {
+        await createBlogPostApi(postData, token);
+        showToast('New blog dispatch published');
+      }
+      const updated = await getBlogPosts({ includeDrafts: true });
+      setBlogPosts(updated || []);
+    } catch (err) {
+      showToast(err.message || 'Failed to save blog post');
+      throw err;
+    }
+  };
+
+  const handleDeleteBlogPost = (id) => {
+    confirmAction('Delete Article', 'Are you sure you want to delete this technical dispatch?', async () => {
+      try {
+        await deleteBlogPostApi(id, token);
+        setBlogPosts((prev) => prev.filter((p) => p.id !== id));
+        showToast('Article deleted');
+      } catch (err) {
+        showToast(err.message || 'Failed to delete article');
+      }
+      setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
+    });
+  };
+
+  // Audit Logs refresh
+  const handleRefreshAuditLogs = async () => {
+    setLoadingAuditLogs(true);
+    try {
+      const logs = await getAuditLogsApi(token, 100);
+      setAuditLogs(logs || []);
+      const health = await getSystemHealthApi();
+      setHealthData(health || null);
+      showToast('Security audit trail synced');
+    } catch (err) {
+      showToast(err.message || 'Failed to sync audit logs');
+    } finally {
+      setLoadingAuditLogs(false);
+    }
   };
 
   // Project save & delete
@@ -439,11 +529,13 @@ export default function AdminDashboardPage() {
 
   const sidebarNav = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'inquiries', label: 'Inquiries CRM', icon: Mail, count: inquiries.length },
+    { id: 'projects', label: 'Case Studies', icon: Layers, count: projects.length },
+    { id: 'blog', label: 'Tech Blog', icon: BookOpen, count: blogPosts.length },
+    { id: 'audit', label: 'Security Logs', icon: ShieldCheck },
     { id: 'services', label: 'Pricing & Services', icon: DollarSign, count: services.length },
-    { id: 'projects', label: 'Projects', icon: Layers, count: projects.length },
-    { id: 'team', label: 'Team Members', icon: Users, count: team.length },
+    { id: 'team', label: 'Founders & Team', icon: Users, count: team.length },
     { id: 'testimonials', label: 'Testimonials', icon: Star, count: testimonials.length },
-    { id: 'inquiries', label: 'Inquiries', icon: Mail, count: inquiries.length },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -559,10 +651,6 @@ export default function AdminDashboardPage() {
             <Menu size={20} />
           </button>
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full border border-green/30 bg-green/10 text-green font-mono text-xs mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse"></span>
-              Authenticated as Studio Admin
-            </div>
             <h1 className="font-display text-3xl font-bold text-text">
               Studio Management Console
             </h1>
@@ -622,232 +710,82 @@ export default function AdminDashboardPage() {
           
           {/* 0. OVERVIEW TAB (DEFAULT) */}
           {activeTab === 'overview' && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <h2 className="font-display text-2xl font-bold text-text mb-1">Overview Dashboard</h2>
-                <p className="text-sm font-mono text-muted">Quick statistics and system status</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-6 rounded-xl border border-border bg-surface flex flex-col items-center text-center justify-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-cyan/10 text-cyan flex items-center justify-center mb-2"><Layers size={24} /></div>
-                  <span className="text-3xl font-display font-bold text-text">{projects.length}</span>
-                  <span className="text-xs font-mono text-muted">Total Projects</span>
-                </div>
-                <div className="p-6 rounded-xl border border-border bg-surface flex flex-col items-center text-center justify-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-amber/10 text-amber flex items-center justify-center mb-2"><DollarSign size={24} /></div>
-                  <span className="text-3xl font-display font-bold text-text">{services.length}</span>
-                  <span className="text-xs font-mono text-muted">Active Services</span>
-                </div>
-                <div className="p-6 rounded-xl border border-border bg-surface flex flex-col items-center text-center justify-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-green/10 text-green flex items-center justify-center mb-2"><Mail size={24} /></div>
-                  <span className="text-3xl font-display font-bold text-text">{inquiries.length}</span>
-                  <span className="text-xs font-mono text-muted">Client Inquiries</span>
-                </div>
-                <div className="p-6 rounded-xl border border-border bg-surface flex flex-col items-center text-center justify-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-red/10 text-red flex items-center justify-center mb-2"><Star size={24} /></div>
-                  <span className="text-3xl font-display font-bold text-text">{testimonials.length}</span>
-                  <span className="text-xs font-mono text-muted">Testimonials</span>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-xl border border-border bg-surface">
-                <h3 className="font-display text-lg font-bold text-text mb-4">Recent Inquiries</h3>
-                {inquiries.slice(0, 3).length > 0 ? (
-                  <div className="space-y-3">
-                    {inquiries.slice(0, 3).map(inq => (
-                      <div key={inq.id} className="flex items-center justify-between p-3 rounded-lg bg-surface2 border border-border/50">
-                        <div>
-                          <p className="text-sm font-bold text-text">{inq.name} <span className="text-xs font-normal text-muted ml-2">{inq.projectType}</span></p>
-                          <p className="text-xs font-mono text-muted mt-1">{new Date(inq.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase ${inq.status === 'unread' ? 'bg-amber text-ink font-bold' : 'bg-surface border border-border text-muted'}`}>
-                          {inq.status || 'new'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm font-mono text-muted">No recent inquiries found.</p>
-                )}
-              </div>
-            </div>
+            <AdminOverview
+              projects={projects}
+              services={services}
+              inquiries={inquiries}
+              blogPosts={blogPosts}
+              testimonials={testimonials}
+              team={team}
+              auditLogs={auditLogs}
+              healthData={healthData}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onNewProject={() => {
+                setCurrentProject({
+                  title: '',
+                  slug: `project-${Date.now().toString().slice(-4)}`,
+                  category: 'Web Application',
+                  priority: projects.length + 1,
+                  shortDescription: '',
+                  overview: '',
+                  keyFeatures: ['Feature 1', 'Feature 2'],
+                  author: 'Akshat Gupta',
+                  authorSlug: 'akshat-gupta',
+                  year: new Date().getFullYear().toString(),
+                  accentColor: '#5FC8C8',
+                  coverImage: '',
+                  technologies: ['React', 'Node.js'],
+                  liveUrl: '',
+                  githubUrl: '',
+                  featured: true,
+                  customerName: '',
+                  customerRating: 5,
+                  customerFeedback: '',
+                  customerDesignation: '',
+                  customerCompany: ''
+                });
+                setIsEditingProject(true);
+              }}
+              onNewBlogPost={() => {
+                setActiveTab('blog');
+              }}
+              onRefreshData={loadAllData}
+            />
           )}
 
-          {/* 1. INQUIRIES TAB */}
+          {/* 1. INQUIRIES CRM TAB */}
           {activeTab === 'inquiries' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                <div>
-                  <h2 className="font-display text-xl font-bold text-text">Client Inquiries</h2>
-                  <p className="text-xs font-mono text-muted mt-0.5">
-                    Real inquiries submitted via /contact and verified through Resend & Phone OTP
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-muted">
-                    {inquiries.filter((i) => i.status === 'unread').length} unread / {inquiries.length} total
-                  </span>
-                  <button
-                    onClick={handleRefreshInquiries}
-                    disabled={refreshingInquiries}
-                    className="px-3 py-1.5 rounded-lg text-xs font-mono bg-surface2 border border-border text-cyan hover:border-cyan/50 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-1.5"
-                    title="Refresh inquiries"
-                  >
-                    <RefreshCw size={13} className={refreshingInquiries ? 'animate-spin' : ''} />
-                    <span>Refresh</span>
-                  </button>
-                </div>
-              </div>
+            <AdminInquiriesManager
+              inquiries={inquiries}
+              loading={loadingData}
+              refreshing={refreshingInquiries}
+              onRefresh={handleRefreshInquiries}
+              onUpdateStatus={handleInquiryStatus}
+              onUpdateInquiry={handleUpdateInquiryData}
+              onDeleteInquiry={handleDeleteInquiry}
+            />
+          )}
 
-              {loadingData ? (
-                <div className="p-12 text-center border border-border rounded-xl bg-surface font-mono text-sm text-muted flex items-center justify-center gap-2">
-                  <RefreshCw size={16} className="animate-spin text-amber" />
-                  <span>loading_inquiries_from_firestore()...</span>
-                </div>
-              ) : inquiries.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {inquiries.map((inq) => (
-                    <div
-                      key={inq.id}
-                      className={`p-6 rounded-xl border bg-surface space-y-4 transition-colors ${
-                        inq.status === 'unread' ? 'border-amber/60 bg-amber/5' : 'border-border'
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-display font-bold text-text text-base">{inq.name}</span>
-                          {inq.company && <span className="text-xs font-mono text-muted">@ {inq.company}</span>}
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
-                              inq.status === 'unread' ? 'bg-amber text-ink font-bold' : 'bg-surface2 text-muted border border-border'
-                            }`}
-                          >
-                            {inq.status || 'new'}
-                          </span>
+          {/* 2. TECH BLOG / DISPATCHES TAB */}
+          {activeTab === 'blog' && (
+            <AdminBlogManager
+              blogPosts={blogPosts}
+              token={token}
+              onSavePost={handleSaveBlogPost}
+              onDeletePost={handleDeleteBlogPost}
+              showToast={showToast}
+              loading={loadingData}
+            />
+          )}
 
-                          {/* Verification Status Badge */}
-                          {inq.verificationMethod === 'both' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-green/15 text-green border border-green/30">
-                              <CheckCircle size={10} />
-                              Verified (Email & Phone)
-                            </span>
-                          ) : inq.verificationMethod === 'phone' || inq.isPhoneVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-green/15 text-green border border-green/30">
-                              <CheckCircle size={10} />
-                              Phone Verified (+91)
-                            </span>
-                          ) : inq.verificationMethod === 'email' || inq.isEmailVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-green/15 text-green border border-green/30">
-                              <CheckCircle size={10} />
-                              Email Verified (Resend)
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-cyan/15 text-cyan border border-cyan/30">
-                              <CheckCircle size={10} />
-                              Firebase Verified
-                            </span>
-                          )}
-                          {(inq.code || inq.promoCode) && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-amber/15 text-amber border border-amber/30">
-                              <Tag size={10} />
-                              {inq.discountApplied || '10% OFF'} ({inq.code || inq.promoCode})
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs font-mono text-muted">{new Date(inq.createdAt).toLocaleString()}</div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs text-muted bg-surface2/40 p-3 rounded-lg border border-border/40">
-                        <div>
-                          <span className="text-cyan">Email:</span>{' '}
-                          <a href={`mailto:${inq.email}`} className="text-text hover:underline break-all">{inq.email}</a>
-                        </div>
-                        <div>
-                          <span className="text-cyan">Phone:</span>{' '}
-                          {inq.phone ? (
-                            <a href={`tel:${inq.phone}`} className="text-text hover:underline">{inq.phone}</a>
-                          ) : (
-                            <span className="text-muted/60">Not provided</span>
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-cyan">Budget:</span>{' '}
-                          <span className="text-amber font-semibold">{inq.budget || 'Not specified'}</span>
-                        </div>
-                        <div>
-                          <span className="text-cyan">Timeline:</span>{' '}
-                          <span className="text-text">{inq.timeline || 'Flexible'}</span>
-                        </div>
-                        {(inq.code || inq.promoCode) && (
-                          <div className="col-span-full flex items-center gap-2 pt-2 border-t border-border/40 text-[11px]">
-                            <span className="text-amber font-semibold flex items-center gap-1">
-                              <Tag size={12} />
-                              Promo Code Redeemed:
-                            </span>{' '}
-                            <span className="text-text font-bold font-mono">{inq.code || inq.promoCode}</span>
-                            <span className="px-2 py-0.5 rounded-full bg-green/15 text-green border border-green/30 text-[10px] font-semibold">
-                              {inq.discountApplied || '10% OFF'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <span className="text-xs font-mono text-cyan block mb-1">
-                          Project: {inq.projectType || 'E-Commerce'}
-                        </span>
-                        <p className="text-sm text-text/90 leading-relaxed font-sans bg-surface2/20 p-3 rounded-lg border border-border/30">
-                          "{inq.message}"
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {inq.status === 'unread' ? (
-                            <button
-                              onClick={() => handleInquiryStatus(inq.id, 'read')}
-                              className="px-3 py-1 rounded text-xs font-mono bg-surface2 border border-border text-muted hover:text-text active:scale-95"
-                            >
-                              mark_as_read()
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleInquiryStatus(inq.id, 'unread')}
-                              className="px-3 py-1 rounded text-xs font-mono bg-surface2 border border-border text-amber hover:bg-surface2/80 active:scale-95"
-                            >
-                              mark_unread()
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleInquiryStatus(inq.id, 'replied')}
-                            className="px-3 py-1 rounded text-xs font-mono bg-green/10 border border-green/30 text-green hover:bg-green/20 active:scale-95"
-                          >
-                            mark_replied()
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={() => handleDeleteInquiry(inq.id)}
-                          className="p-1.5 rounded text-red hover:bg-red/10 transition-colors active:scale-95"
-                          title="Delete inquiry"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center border border-border rounded-xl bg-surface font-mono text-sm text-muted space-y-2">
-                  <Mail size={32} className="mx-auto text-muted/40 mb-2" />
-                  <p className="text-text font-semibold">No inquiries yet</p>
-                  <p className="text-xs text-muted max-w-sm mx-auto">
-                    Real client inquiries submitted through the Project Inquiry Form on /contact will automatically appear here.
-                  </p>
-                </div>
-              )}
-            </div>
+          {/* 3. SECURITY AUDIT LOGS TAB */}
+          {activeTab === 'audit' && (
+            <AdminAuditLogs
+              auditLogs={auditLogs}
+              healthData={healthData}
+              onRefresh={handleRefreshAuditLogs}
+              loading={loadingAuditLogs}
+            />
           )}
 
           {/* 2. PROJECTS TAB */}

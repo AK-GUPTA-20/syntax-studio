@@ -10,6 +10,7 @@ export const authHeader = (token) => {
 async function request(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
     ...(options.headers || {}),
   };
 
@@ -120,8 +121,14 @@ export const getTestimonials = async () => {
   return res.data;
 };
 
-export const getBlogPosts = async () => {
-  const res = await request('/blog');
+export const getBlogPosts = async (options = {}) => {
+  const query = options.includeDrafts ? '?includeDrafts=true' : '';
+  const res = await request(`/blog${query}`);
+  return res.data;
+};
+
+export const getBlogPostBySlug = async (slug) => {
+  const res = await request(`/blog/${slug}`);
   return res.data;
 };
 
@@ -344,5 +351,47 @@ export const checkEmailVerificationStatusApi = async (email, proof = '') => {
   const res = await request(`/verification/status?${params.toString()}`);
   return res.data;
 };
+
+// Blog Posts Admin CRUD
+export const createBlogPostApi = async (payload, token) => {
+  const res = await request('/blog', {
+    method: 'POST',
+    headers: { ...authHeader(token) },
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+};
+
+export const updateBlogPostApi = async (id, payload, token) => {
+  const res = await request(`/blog/${id}`, {
+    method: 'PUT',
+    headers: { ...authHeader(token) },
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+};
+
+export const deleteBlogPostApi = async (id, token) => {
+  const res = await request(`/blog/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeader(token) },
+  });
+  return res.data;
+};
+
+// Security Audit Logs API
+export const getAuditLogsApi = async (token, limit = 50) => {
+  const res = await request(`/auth/audit-logs?limit=${limit}`, {
+    headers: { ...authHeader(token) },
+  });
+  return res.data;
+};
+
+// System Health API
+export const getSystemHealthApi = async () => {
+  const res = await request('/health');
+  return res;
+};
+
 
 

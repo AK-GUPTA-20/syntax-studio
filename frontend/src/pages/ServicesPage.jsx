@@ -16,6 +16,7 @@ import {
 import { getServices, getSettings } from '../api/client';
 import { ServiceSkeleton, TierSkeleton } from '../components/SkeletonLoader';
 import FaqAccordion from '../components/FaqAccordion';
+import ProjectEstimator from '../components/ProjectEstimator';
 
 export default function ServicesPage() {
   const [services, setServices] = useState([]);
@@ -268,6 +269,11 @@ export default function ServicesPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Interactive Project Cost & Timeline Estimator */}
+      <section id="estimator" className="mb-24 scroll-mt-28">
+        <ProjectEstimator promoDiscount={settings?.discountPercentage || 10} />
       </section>
 
       {/* Client Questions & Answers */}

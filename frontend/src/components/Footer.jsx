@@ -57,6 +57,8 @@ export default function Footer() {
             <ul className="space-y-2 text-muted">
               <li><Link to="/projects" className="hover:text-text transition-colors">Work & Case Studies</Link></li>
               <li><Link to="/services" className="hover:text-text transition-colors">Services Offered</Link></li>
+              <li><Link to="/services#estimator" className="hover:text-amber transition-colors flex items-center gap-1 font-semibold text-text"><span>Scope Estimator</span> <span className="text-[10px] text-amber">⚡</span></Link></li>
+              <li><Link to="/blog" className="hover:text-text transition-colors">Tech Dispatches & Blog</Link></li>
               <li><Link to="/about" className="hover:text-text transition-colors">About Our Studio</Link></li>
               <li><Link to="/team" className="hover:text-text transition-colors">The Founders</Link></li>
               <li><Link to="/contact" className="hover:text-text transition-colors">Start a Project</Link></li>
@@ -120,8 +122,15 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center sm:justify-between gap-4 font-mono text-xs text-muted text-center sm:text-left">
-          <div>
-            © {currentYear} {settings?.companyName || 'Syntax Studio'}. Founded by {foundersName}.
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+            <span>© {currentYear} {settings?.companyName || 'Syntax Studio'}. Founded by {foundersName}.</span>
+            <span className="hidden sm:inline text-border">•</span>
+            <span className="inline-flex items-center gap-1.5 text-green">
+              <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
+              <span>Systems Online</span>
+            </span>
+            <span className="hidden sm:inline text-border">•</span>
+            <span className="text-cyan">OWASP Hardened</span>
           </div>
           <div className="flex items-center gap-3">
             <span>{settings?.footerTechStack || 'Built with React + Tailwind + Express + Firebase • Zero generic templates'}</span>

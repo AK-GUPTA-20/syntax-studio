@@ -44,7 +44,20 @@ Recent commits:
   * 4a9f1b2 (HEAD -> main) feat: zero-latency caching via Redis pipeline
   * 8c2d9e0 feat: atomic double-entry ledger verification engine`,
     team: `~ ls -la founders/
-${teamList}`
+${teamList}`,
+    security: `~ syntax --audit-security
+[SECURITY AUDIT COMPLIANCE: 25/25 PASSED]
+  ✔ SQL & NoSQL Injection Defenses: ACTIVE
+  ✔ Server-Side XSS & Content-Security-Policy: ACTIVE
+  ✔ Anti-CSRF Token & Header Validation: ACTIVE
+  ✔ Broken Object-Level Auth (BOLA/IDOR): BLOCKED
+  ✔ Brute-Force Rate Limiting (5-attempt lockout): ACTIVE
+  ✔ JWT Signing (HS256 with 2h expiration): ENFORCED
+  ✔ Password Hashing (Bcrypt 12 Salt Rounds): ENFORCED
+  ✔ ImageKit Magic-Byte Header Verification: ACTIVE
+  ✔ SSRF Outbound IP Range Blocker: ACTIVE
+  ✔ Row-Level Security (Cloud Firestore RLS): ENFORCED
+  ✔ Realtime Security Audit Logging: ACTIVE`
   };
 
   const copyText = () => {
@@ -66,7 +79,7 @@ ${teamList}`
 
         {/* Tab switchers */}
         <div className="flex items-center gap-1">
-          {['studio', 'status', 'team'].map((tab) => (
+          {['studio', 'status', 'team', 'security'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}

@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Terminal,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Calculator
 } from 'lucide-react';
 import { getProjects, getServices, getTeam, getTestimonials, getSettings } from '../api/client';
 import ProjectCard from '../components/ProjectCard';
@@ -28,6 +29,7 @@ import TerminalBox from '../components/TerminalBox';
 import AgencyComparison from '../components/AgencyComparison';
 import ProcessRoadmap from '../components/ProcessRoadmap';
 import FaqAccordion from '../components/FaqAccordion';
+import TechStackTicker from '../components/TechStackTicker';
 import { ProjectSkeleton, ServiceSkeleton, TestimonialSkeleton } from '../components/SkeletonLoader';
 
 export default function HomePage() {
@@ -121,6 +123,14 @@ export default function HomePage() {
                   Explore Case Studies
                   <ArrowUpRight size={16} />
                 </Link>
+
+                <Link
+                  to="/services#estimator"
+                  className="flex items-center gap-2 px-5 py-3.5 rounded-lg text-sm font-mono font-semibold bg-surface2/90 border border-amber/40 text-amber hover:border-amber hover:bg-amber/10 transition-all active:scale-95 shadow-sm"
+                >
+                  <Calculator size={15} />
+                  <span>Estimate Cost & Scope</span>
+                </Link>
               </div>
 
               {/* Quick Trust Highlights (Dynamic from settings.stats) */}
@@ -143,6 +153,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* TECH STACK & ARCHITECTURE MARQUEE */}
+      <TechStackTicker />
 
       {/* 2. TRUST / CAPABILITIES SECTION (Dynamic from settings.capabilities) */}
       {(loading || displayedCapabilities.length > 0) && (
@@ -341,6 +354,39 @@ export default function HomePage() {
           </div>
 
           <FaqAccordion customFaqs={settings?.faqs} loading={loading} />
+        </div>
+      </section>
+
+      {/* 11.5 INTERACTIVE ESTIMATOR CALLOUT BANNER */}
+      <section className="py-16 border-t border-border bg-gradient-to-r from-amber/[0.04] via-surface to-cyan/[0.04]">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8">
+          <div className="p-8 sm:p-12 rounded-2xl border border-amber/30 bg-surface/90 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur-sm">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="space-y-3 max-w-2xl relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber/10 border border-amber/30 text-amber text-xs font-mono">
+                <Sparkles size={12} />
+                <span>Interactive Cost & Architecture Tool</span>
+              </div>
+              <h3 className="font-display text-2xl sm:text-3xl font-bold text-text">
+                Want an instant budget & timeline estimate for your project?
+              </h3>
+              <p className="text-sm text-muted font-sans leading-relaxed">
+                Configure your required tech stacks, milestones, and deliverable scope. Get algorithmic real-time cost projections with our transparent formula and apply a 10% promo code before speaking to our founders.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 relative z-10">
+              <Link
+                to="/services#estimator"
+                className="px-6 py-3.5 rounded-xl text-sm font-mono font-bold bg-amber text-ink hover:bg-amber/90 transition-all shadow-md active:scale-95 flex items-center gap-2"
+              >
+                <Calculator size={16} />
+                <span>Calculate Scope & Price</span>
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

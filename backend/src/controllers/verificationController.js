@@ -5,7 +5,9 @@ import {
   checkEmailVerification
 } from '../services/verificationService.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { sanitizeInput } from '../utils/sanitize.js';
 import { config } from '../config/env.js';
+import { logAuditEvent, AuditEventType } from '../services/auditLogger.js';
 
 /**
  * POST /api/verification/send-code
@@ -18,12 +20,23 @@ export const handleSendVerification = async (req, res, next) => {
       return ApiResponse.error(res, 'A valid email address is required.', null, 400);
     }
 
+    const cleanEmail = sanitizeInput(email.toLowerCase(), 100);
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(cleanEmail)) {
       return ApiResponse.error(res, 'Please provide a valid email address format.', null, 400);
     }
 
-    const result = await sendVerificationCode(email.trim());
+    const result = await sendVerificationCode(cleanEmail);
+
+    await logAuditEvent({
+      eventType: AuditEventType.VERIFICATION_ATTEMPT,
+      actor: cleanEmail,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'SUCCESS',
+      details: { action: 'send_code' }
+    });
+
     const message = result.devNotice
       ? `Verification code generated! (Dev mode: check server terminal)`
       : `Verification code sent to ${result.email}. Please check your inbox or spam folder.`;
@@ -57,7 +70,20 @@ export const handleVerifyOtp = async (req, res, next) => {
       return ApiResponse.error(res, 'Email and 6-digit OTP are required.', null, 400);
     }
 
-    const result = await verifyOtpCode(email, otp);
+    const cleanEmail = sanitizeInput(String(email).toLowerCase(), 100);
+    const cleanOtp = sanitizeInput(String(otp), 10);
+
+    const result = await verifyOtpCode(cleanEmail, cleanOtp);
+
+    await logAuditEvent({
+      eventType: AuditEventType.VERIFICATION_ATTEMPT,
+      actor: cleanEmail,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'SUCCESS',
+      details: { action: 'verify_otp' }
+    });
+
     return ApiResponse.success(res, 'Email verified successfully!', result);
   } catch (error) {
     return ApiResponse.error(
@@ -72,7 +98,6 @@ export const handleVerifyOtp = async (req, res, next) => {
 /**
  * GET /api/verification/verify-email?token=...&email=...
  * Verification link clicked by user in email.
- * Redirects user back to frontend /contact with status.
  */
 export const handleVerifyEmailLink = async (req, res) => {
   const { token, email } = req.query;
@@ -84,7 +109,9 @@ export const handleVerifyEmailLink = async (req, res) => {
   }
 
   try {
-    const result = await verifyEmailToken(email, token);
+    const cleanEmail = sanitizeInput(String(email).toLowerCase(), 100);
+    const cleanToken = sanitizeInput(String(token), 100);
+    const result = await verifyEmailToken(cleanEmail, cleanToken);
     const redirectUrl = `${clientBase}/contact?emailVerified=true&email=${encodeURIComponent(result.email)}&proof=${encodeURIComponent(result.verificationProof)}`;
     return res.redirect(redirectUrl);
   } catch (error) {
@@ -104,9 +131,12 @@ export const handleCheckVerificationStatus = async (req, res) => {
       return ApiResponse.error(res, 'Email parameter is required.', null, 400);
     }
 
-    const isVerified = await checkEmailVerification(email, proof);
+    const cleanEmail = sanitizeInput(String(email).toLowerCase(), 100);
+    const cleanProof = sanitizeInput(String(proof || ''), 500);
+
+    const isVerified = await checkEmailVerification(cleanEmail, cleanProof);
     return ApiResponse.success(res, 'Verification status retrieved.', {
-      email,
+      email: cleanEmail,
       isVerified
     });
   } catch (error) {

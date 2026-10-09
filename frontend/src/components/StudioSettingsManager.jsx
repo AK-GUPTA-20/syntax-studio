@@ -80,7 +80,7 @@ export default function StudioSettingsManager({
       {
         id: 'branding',
         label: 'Academic & Tech Stack',
-        desc: 'Colleges, primary stack & navbar/footer pills',
+        desc: 'Colleges, primary stack & footer settings',
         icon: GraduationCap,
         badge: 'Branding'
       },
@@ -707,15 +707,6 @@ export default function StudioSettingsManager({
                       type="text"
                       value={settings.academicCenters || ''}
                       onChange={(e) => updateSetting('academicCenters', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-surface2 border border-border text-text font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-cyan mb-1.5">BRAND SUBTITLE PILL (NAVBAR)</label>
-                    <input
-                      type="text"
-                      value={settings.brandSubtitle || '2-person agency'}
-                      onChange={(e) => updateSetting('brandSubtitle', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg bg-surface2 border border-border text-text font-mono"
                     />
                   </div>

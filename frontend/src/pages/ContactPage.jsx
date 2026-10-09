@@ -163,12 +163,13 @@ function StatusBadge({ verified, label }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ContactPage() {
   const [searchParams] = useSearchParams();
-  const preselectedService  = searchParams.get('service')  || '';
+  const preselectedService  = searchParams.get('service')  || searchParams.get('projectType') || '';
   const preselectedFounder  = searchParams.get('founder')  || '';
   const preselectedProject  = searchParams.get('project')  || searchParams.get('projectRef') || '';
   const preselectedBudget   = searchParams.get('budget')   || '';
   const preselectedTimeline = searchParams.get('timeline') || '';
   const preselectedCode     = searchParams.get('code')     || '';
+  const preselectedScope    = searchParams.get('scopeSummary') || '';
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [team, setTeam]         = useState([]);
@@ -181,7 +182,9 @@ export default function ContactPage() {
   const toastTimerRef = useRef(null);
 
   // ── Form ──────────────────────────────────────────────────────────────────
-  const initialMessage = preselectedProject
+  const initialMessage = preselectedScope
+    ? preselectedScope
+    : preselectedProject
     ? `Hi Syntax Studio team, I am interested in building a solution similar to ${preselectedProject}. Here are some specifics about our requirements:`
     : preselectedFounder
     ? `Hi ${preselectedFounder}, I would like to discuss a project with you.`

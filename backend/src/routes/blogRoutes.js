@@ -7,13 +7,19 @@ import {
   deleteBlogPost
 } from '../controllers/blogController.js';
 import { requireAdmin } from '../middleware/authMiddleware.js';
+import {
+  validateBlogPostInput,
+  validateBlogIdParam,
+  validateBlogSlugParam
+} from '../validators/blogValidator.js';
 
 const router = Router();
 
 router.get('/', getAllBlogPosts);
-router.get('/:slug', getBlogPostBySlug);
-router.post('/', requireAdmin, createBlogPost);
-router.put('/:id', requireAdmin, updateBlogPost);
-router.delete('/:id', requireAdmin, deleteBlogPost);
+router.get('/:slug', validateBlogSlugParam, getBlogPostBySlug);
+
+router.post('/', requireAdmin, validateBlogPostInput, createBlogPost);
+router.put('/:id', requireAdmin, validateBlogIdParam, validateBlogPostInput, updateBlogPost);
+router.delete('/:id', requireAdmin, validateBlogIdParam, deleteBlogPost);
 
 export default router;

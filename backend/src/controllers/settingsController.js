@@ -1,8 +1,45 @@
 import { FirestoreService } from '../services/firestoreService.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { sanitizeInput } from '../utils/sanitize.js';
 import { config } from '../config/env.js';
+import { logAuditEvent, AuditEventType } from '../services/auditLogger.js';
 
 const settingsService = new FirestoreService('settings');
+
+// Permitted fields (BOPLA prevention)
+const ALLOWED_SETTINGS_FIELDS = [
+  'studioName',
+  'contactEmail',
+  'workingHours',
+  'promoCode',
+  'discountPercentage',
+  'discountLabel',
+  'promoActive',
+  'termsAndConditions',
+  'termsVersion',
+  'termsLastUpdated'
+];
+
+function pickSettingsData(rawBody) {
+  const picked = {};
+  for (const field of ALLOWED_SETTINGS_FIELDS) {
+    if (field in rawBody) {
+      const val = rawBody[field];
+      if (typeof val === 'string') {
+        picked[field] = sanitizeInput(val, field === 'termsAndConditions' ? 50000 : 200);
+      } else if (field === 'promoCode' && typeof val === 'string') {
+        picked[field] = val.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
+      } else if (field === 'discountPercentage') {
+        picked[field] = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+      } else if (field === 'promoActive') {
+        picked[field] = Boolean(val);
+      } else {
+        picked[field] = val;
+      }
+    }
+  }
+  return picked;
+}
 
 export const getSettings = async (req, res, next) => {
   try {
@@ -19,7 +56,7 @@ export const getSettings = async (req, res, next) => {
         promoActive: true,
       });
     }
-    // Ensure promo settings fallback if not yet stored in doc
+
     if (!settings.promoCode) {
       settings.promoCode = config.promoCode || 'syntaxStudio';
     }
@@ -32,34 +69,7 @@ export const getSettings = async (req, res, next) => {
     if (settings.promoActive === undefined) {
       settings.promoActive = true;
     }
-    if (!settings.termsAndConditions) {
-      settings.termsAndConditions = `1. ENGAGEMENT AND SCOPE OF WORK
-Syntax Studio provides custom software engineering, full-stack web development, and systems architecture services. All project timelines, deliverables, and technical specifications are defined in the mutually approved proposal or sprint milestone schedule.
 
-2. FIXED-PRICE MILESTONES & PAYMENT TERMS
-Every engagement is structured with transparent, milestone-based pricing. Work begins upon milestone agreement. Invoices are payable according to the agreed milestones. Zero hidden fees or unsolicited recurring retainers.
-
-3. INTELLECTUAL PROPERTY & CODE OWNERSHIP
-Upon full settlement of milestone payments, 100% of all intellectual property, proprietary source code, database architectures, and associated assets created for the client are irrevocably transferred to the client.
-
-4. CONFIDENTIALITY & NON-DISCLOSURE (NDA)
-Syntax Studio treats all client information, product specifications, trade secrets, and business logic with strict confidentiality under full mutual non-disclosure principles.
-
-5. POST-LAUNCH WARRANTY & SUPPORT
-All completed and deployed software modules include our standard 14-day post-launch warranty, covering bug fixes, deployment stability, and critical resolution of agreed deliverables.
-
-6. LIMITATION OF LIABILITY
-Syntax Studio strives for architectural resilience and 99.9% uptime compliance. Neither party shall be held liable for indirect, incidental, or consequential damages arising from third-party vendor outages (cloud hosts, payment gateways, external APIs).
-
-7. GOVERNING LAW & JURISDICTION
-These terms are governed in accordance with applicable laws. Any disputes shall be resolved through good-faith mediation prior to formal legal proceedings.`;
-    }
-    if (!settings.termsVersion) {
-      settings.termsVersion = '1.0';
-    }
-    if (!settings.termsLastUpdated) {
-      settings.termsLastUpdated = new Date().toISOString().split('T')[0];
-    }
     return ApiResponse.success(res, 'Studio settings retrieved', settings);
   } catch (error) {
     next(error);
@@ -68,7 +78,18 @@ These terms are governed in accordance with applicable laws. Any disputes shall 
 
 export const updateSettings = async (req, res, next) => {
   try {
-    const updated = await settingsService.update('general', req.body);
+    const cleanData = pickSettingsData(req.body);
+    const updated = await settingsService.update('general', cleanData);
+
+    await logAuditEvent({
+      eventType: AuditEventType.SETTINGS_UPDATED,
+      actor: req.adminUser?.email || 'admin',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'SUCCESS',
+      details: { updatedKeys: Object.keys(cleanData) }
+    });
+
     return ApiResponse.success(res, 'Studio settings updated successfully', updated);
   } catch (error) {
     next(error);

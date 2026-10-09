@@ -1,17 +1,41 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Secure fallback generator for development only
+function getSecureDevSecret(envVarName) {
+  if (isProduction) {
+    throw new Error(
+      `[SECURITY FATAL] Missing required environment variable '${envVarName}' in production mode! Server startup aborted.`
+    );
+  }
+  const ephemeralKey = crypto.randomBytes(32).toString('hex');
+  console.warn(
+    `⚠️ [SECURITY NOTICE] '${envVarName}' is not defined. Using temporary ephemeral cryptographic key for development.`
+  );
+  return ephemeralKey;
+}
+
+const adminSecretKey = process.env.ADMIN_SECRET_KEY || getSecureDevSecret('ADMIN_SECRET_KEY');
+const jwtSecret = process.env.JWT_SECRET || adminSecretKey;
+
 export const config = {
-  port: process.env.PORT || 5000,
+  port: parseInt(process.env.PORT, 10) || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  adminSecretKey: process.env.ADMIN_SECRET_KEY || 'admin_syntax_studio_2025_secure_key',
-  adminAccessToken: process.env.ADMIN_ACCESS_TOKEN || 'akshat0021',
+  clientUrl: (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, ''),
+  adminSecretKey,
+  jwtSecret,
+  // Admin credentials: prefer pre-hashed bcrypt password, or plaintext password from env
+  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
+  adminPassword: process.env.ADMIN_PASSWORD || process.env.ADMIN_ACCESS_TOKEN || '',
+  webhookSecret: process.env.WEBHOOK_SECRET || adminSecretKey,
   imagekit: {
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
     privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',

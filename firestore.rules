@@ -9,6 +9,17 @@ service cloud.firestore {
     //
     // This security rules file assumes the following data structures:
     //
+    // Collection: users
+    // Document ID: userId (must match Firebase Auth UID)
+    // Fields:
+    //   - id: string (optional) - user identifier
+    //   - email: string (optional) - user email address
+    //   - displayName: string (optional) - user display name
+    //   - isEmailVerified: bool (optional) - email verification flag
+    //   - emailVerifiedAt: string/timestamp (optional) - verification timestamp
+    //   - createdAt: string/timestamp (optional) - creation timestamp
+    //   - updatedAt: string/timestamp (optional) - update timestamp
+    //
     // Collection: projects
     // Document ID: auto-generated or slug string
     // Fields:
@@ -124,6 +135,14 @@ service cloud.firestore {
     //   - createdAt: timestamp / string (optional, 0-50 chars)
     //   - id: string (optional, 0-128 chars)
     //
+    // Collection: auditLogs
+    // Document ID: auto-generated string
+    // Access: Server-side only via Firebase Admin SDK
+    //
+    // Collection: emailVerifications
+    // Document ID: email / verification ID
+    // Access: Server-side only via Firebase Admin SDK
+    //
     // ===============================================================
 
     // ===============================================================
@@ -216,6 +235,18 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------
+    // User Profiles (Row-Level Security / Principle of Least Privilege)
+    // Authenticated users can read and update only their own profile.
+    // Client creation is restricted to their own userId.
+    // Client deletions are strictly denied.
+    // -------------------------------------------------------------
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
     // Public Content Collections (Read-Only for Public Web Visitors)
     // Direct client writes are COMPLETELY DENIED.
     // All creation, editing, and deletion operations are executed
@@ -270,18 +301,26 @@ service cloud.firestore {
 
     // -------------------------------------------------------------
     // Client Inquiries (Write-Only Drop-Box for Authenticated Clients)
-    // Direct client reads are COMPLETELY DENIED to protect client
-    // confidentiality, phone numbers, and emails.
-    // Direct client updates and deletes are COMPLETELY DENIED.
-    // Only backend Firebase Admin SDK can read and manage inquiries.
+    // Direct client reads, updates, and deletes are COMPLETELY DENIED
+    // to protect client confidentiality, phone numbers, and emails.
+    // Only backend Firebase Admin SDK can read, update, and manage inquiries.
     // -------------------------------------------------------------
     match /contactMessages/{messageId} {
-      // Complete client read lockdown (prevents PII exposure)
-      allow read: if false;
-      // Client updates & deletes are strictly forbidden
-      allow update, delete: if false;
-      // Creation allowed only for authenticated clients (Email Link / Phone OTP) with strict validation
+      allow read, update, delete: if false;
       allow create: if isAuthenticated() && isValidContactMessage(request.resource.data);
+    }
+
+    // -------------------------------------------------------------
+    // System & Internal Security Collections (Admin SDK Only)
+    // Direct client reads and writes are strictly denied.
+    // Accessible exclusively by backend services via Firebase Admin SDK.
+    // -------------------------------------------------------------
+    match /auditLogs/{logId} {
+      allow read, write: if false;
+    }
+
+    match /emailVerifications/{verificationId} {
+      allow read, write: if false;
     }
 
     // -------------------------------------------------------------

@@ -158,6 +158,43 @@
   background: #3B4B61;
 }
 
+/* Marquee Keyframes & Utilities */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Horizontal Gradient Mask */
+.mask-gradient-x {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Ambient Cyber Glow Card Border */
+.cyber-card {
+  position: relative;
+  background: rgba(18, 24, 33, 0.85);
+  border: 1px solid rgba(38, 48, 63, 0.8);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cyber-card:hover {
+  border-color: rgba(95, 200, 200, 0.45);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(95, 200, 200, 0.15);
+  transform: translateY(-3px);
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

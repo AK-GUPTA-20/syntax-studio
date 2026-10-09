@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ExternalLink, Globe, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ExternalLink, Globe, AlertTriangle, Star } from 'lucide-react';
 import { SafeExternalLink, safeWindowOpen } from '../utils/security';
 
 export default function ProjectCard({ project }) {
@@ -123,9 +123,25 @@ export default function ProjectCard({ project }) {
               {title}
             </Link>
           </h3>
-          <p className="text-sm text-muted leading-relaxed line-clamp-3 mb-5">
+          <p className="text-sm text-muted leading-relaxed line-clamp-3 mb-4">
             {shortDescription}
           </p>
+
+          {project.customerRating && (
+            <div className="mb-4 p-2 rounded-lg bg-surface2/60 border border-border/50 flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-1 text-amber">
+                {[...Array(Math.min(5, Math.max(1, Math.floor(project.customerRating))))].map((_, i) => (
+                  <Star key={i} size={11} fill="#E8A33D" stroke="#E8A33D" />
+                ))}
+                <span className="text-[10px] text-text font-semibold ml-1 truncate max-w-[130px]">
+                  {project.customerName || 'Verified Client'}
+                </span>
+              </div>
+              <span className="text-[10px] text-green font-semibold">
+                {project.customerRating}★
+              </span>
+            </div>
+          )}
         </div>
 
         <div>

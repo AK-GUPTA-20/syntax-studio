@@ -3,7 +3,9 @@ import { ApiResponse } from '../utils/apiResponse.js';
 import { getAdminAuth } from '../firebase/firebaseAdmin.js';
 import { checkEmailVerification } from '../services/verificationService.js';
 import { sendConfirmationEmail } from '../services/emailService.js';
+import { sanitizeInput } from '../utils/sanitize.js';
 import { config } from '../config/env.js';
+import { logAuditEvent, AuditEventType } from '../services/auditLogger.js';
 
 const contactService = new FirestoreService('contactMessages');
 const settingsService = new FirestoreService('settings');
@@ -22,17 +24,16 @@ export const submitContactForm = async (req, res, next) => {
       message,
       firebaseToken,
       emailVerificationProof,
-      verificationMethod,
       code,
       promoCode,
       termsAccepted
     } = req.body;
 
-    const cleanedEmail = (email || '').trim().toLowerCase();
+    const cleanedEmail = sanitizeInput((email || '').toLowerCase(), 100);
 
     // Normalize Indian phone number to E.164 (+91XXXXXXXXXX)
     let normalizedPhone = '';
-    if (phone && phone.trim()) {
+    if (phone && typeof phone === 'string' && phone.trim()) {
       const digits = phone.replace(/[\s\-\(\)]/g, '').replace(/^(\+91|91|0)/, '');
       if (/^[6-9]\d{9}$/.test(digits)) {
         normalizedPhone = `+91${digits}`;
@@ -45,10 +46,12 @@ export const submitContactForm = async (req, res, next) => {
     if (firebaseToken) {
       try {
         const auth = getAdminAuth();
-        decodedToken = await auth.verifyIdToken(firebaseToken);
-        const tokenPhone = decodedToken?.phone_number || '';
-        if (tokenPhone && normalizedPhone && (tokenPhone === normalizedPhone || tokenPhone.endsWith(normalizedPhone.slice(-10)))) {
-          isPhoneVerified = true;
+        if (auth) {
+          decodedToken = await auth.verifyIdToken(firebaseToken);
+          const tokenPhone = decodedToken?.phone_number || '';
+          if (tokenPhone && normalizedPhone && (tokenPhone === normalizedPhone || tokenPhone.endsWith(normalizedPhone.slice(-10)))) {
+            isPhoneVerified = true;
+          }
         }
       } catch { /* non-fatal — phone verification optional */ }
     }
@@ -71,7 +74,7 @@ export const submitContactForm = async (req, res, next) => {
       : (isPhoneVerified ? 'phone' : 'email');
 
     // Promo code validation & discount calculation
-    const submittedCode = (code || promoCode || '').trim();
+    const submittedCode = sanitizeInput(code || promoCode || '', 50);
     let validatedCode = null;
     let discountApplied = null;
 
@@ -80,7 +83,7 @@ export const submitContactForm = async (req, res, next) => {
       try {
         currentSettings = await settingsService.getById('general');
       } catch (err) {
-        console.warn('Could not read settings for promo validation:', err.message);
+        // non-fatal
       }
       const activeCode = (currentSettings?.promoCode || config.promoCode || 'syntaxStudio').trim();
       const discountPercent = currentSettings?.discountPercentage ?? config.discountPercentage ?? 10;
@@ -94,19 +97,20 @@ export const submitContactForm = async (req, res, next) => {
       }
     }
 
+    // Whitelist and sanitize all message fields (Mass assignment defense)
     const messageDoc = {
-      name: (name || '').trim(),
+      name: sanitizeInput(name || '', 100),
       email: cleanedEmail,
-      phone: normalizedPhone || (phone ? phone.trim() : ''),
-      company: (company || '').trim(),
-      projectType: projectType || 'E-Commerce',
-      budget: budget || '₹5,000 – ₹15,000',
-      timeline: timeline || '1 – 2 Months',
+      phone: normalizedPhone || (phone ? sanitizeInput(phone, 30) : ''),
+      company: sanitizeInput(company || '', 120),
+      projectType: sanitizeInput(projectType || 'E-Commerce', 100),
+      budget: sanitizeInput(budget || '₹5,000 – ₹15,000', 100),
+      timeline: sanitizeInput(timeline || '1 – 2 Months', 100),
       code: validatedCode,
       promoCode: validatedCode,
       discountApplied,
       termsAccepted: Boolean(termsAccepted),
-      message: (message || '').trim(),
+      message: sanitizeInput(message || '', 3000),
       verificationStatus: 'verified',
       verificationMethod: verifiedMethod,
       isEmailVerified,
@@ -114,7 +118,7 @@ export const submitContactForm = async (req, res, next) => {
       verifiedUid: decodedToken ? decodedToken.uid : null,
       status: 'unread',
       ip: req.ip,
-      userAgent: req.headers['user-agent']
+      userAgent: sanitizeInput(req.headers['user-agent'] || '', 150)
     };
 
     const created = await contactService.create(messageDoc);
@@ -132,8 +136,8 @@ export const submitContactForm = async (req, res, next) => {
           await usersService.create({
             id: cleanedEmail,
             email: cleanedEmail,
-            name: (name || '').trim(),
-            company: (company || '').trim(),
+            name: sanitizeInput(name || '', 100),
+            company: sanitizeInput(company || '', 120),
             isEmailVerified: true,
             createdAt: new Date().toISOString()
           });
@@ -141,15 +145,24 @@ export const submitContactForm = async (req, res, next) => {
       } catch { /* non-fatal */ }
     }
 
-    // Send client confirmation email (non-fatal — never blocks submission)
+    // Send client confirmation email
     sendConfirmationEmail({
       to: cleanedEmail,
-      name: (name || '').trim(),
-      projectType: projectType || '',
-      budget: budget || '',
-      timeline: timeline || '',
+      name: messageDoc.name,
+      projectType: messageDoc.projectType,
+      budget: messageDoc.budget,
+      timeline: messageDoc.timeline,
       inquiryId: created.id
     }).catch(() => {});
+
+    await logAuditEvent({
+      eventType: AuditEventType.INQUIRY_RECEIVED,
+      actor: cleanedEmail,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'SUCCESS',
+      details: { id: created.id, verificationMethod: verifiedMethod }
+    });
 
     return ApiResponse.success(
       res,
@@ -165,7 +178,6 @@ export const submitContactForm = async (req, res, next) => {
 export const getAllInquiries = async (req, res, next) => {
   try {
     const inquiries = await contactService.getAll();
-    // Sort descending by creation date
     inquiries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return ApiResponse.success(res, 'Inquiries retrieved successfully', inquiries);
   } catch (error) {
@@ -178,8 +190,13 @@ export const updateInquiryStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status, notes } = req.body;
     const updateData = {};
-    if (status) updateData.status = status;
-    if (notes !== undefined) updateData.notes = notes;
+
+    if (status && ['unread', 'in_review', 'contacted', 'archived', 'closed'].includes(status)) {
+      updateData.status = status;
+    }
+    if (notes !== undefined) {
+      updateData.notes = sanitizeInput(String(notes), 2000);
+    }
 
     const updated = await contactService.update(id, updateData);
     if (!updated) {
@@ -198,6 +215,16 @@ export const deleteInquiry = async (req, res, next) => {
     if (!deleted) {
       return ApiResponse.error(res, `Inquiry with id '${id}' not found`, null, 404);
     }
+
+    await logAuditEvent({
+      eventType: AuditEventType.INQUIRY_DELETED,
+      actor: req.adminUser?.email || 'admin',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'SUCCESS',
+      details: { id }
+    });
+
     return ApiResponse.success(res, 'Inquiry deleted successfully', { id });
   } catch (error) {
     next(error);
