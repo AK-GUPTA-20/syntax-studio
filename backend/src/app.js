@@ -65,39 +65,19 @@ app.use(helmet({
   }
 }));
 
-// Tightened CORS configuration
-const allowedOrigins = [
-  config.clientUrl,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000'
-].filter(Boolean);
+import { isOriginAllowed } from './config/corsOrigins.js';
 
-app.use(cors({
+// Robust CORS configuration supporting production Vercel domains, custom origins, and preflights
+const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser requests (tools, server-to-server, curl) when no origin is present
-    if (!origin) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
-
-    const isAllowed = allowedOrigins.some(allowed => {
-      try {
-        return new URL(origin).origin === new URL(allowed).origin;
-      } catch {
-        return false;
-      }
-    });
-
-    if (isAllowed) {
-      return callback(null, true);
-    }
-
-    // In development, log notice; in production, reject disallowed origins
+    // In development mode, allow for easier debugging; in production cleanly reject without 500
     if (config.nodeEnv === 'development') {
       return callback(null, true);
     }
-    
-    return callback(new Error(`CORS policy rejection: Origin '${origin}' is not authorized.`));
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -106,9 +86,16 @@ app.use(cors({
     'Authorization',
     'X-Requested-With',
     'X-CSRF-Token',
-    'Accept'
-  ]
-}));
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200,
+  maxAge: 86400 // Cache preflight response for 24 hours
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Request logger
 if (config.nodeEnv !== 'test') {

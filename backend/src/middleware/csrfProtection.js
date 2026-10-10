@@ -1,16 +1,8 @@
-import { config } from '../config/env.js';
+import { isOriginAllowed } from '../config/corsOrigins.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { logAuditEvent, AuditEventType } from '../services/auditLogger.js';
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-// Whitelist of allowed origins for cross-origin requests
-const allowedOrigins = [
-  config.clientUrl,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000'
-];
 
 /**
  * CSRF Protection Middleware
@@ -35,25 +27,27 @@ export function csrfProtection(req, res, next) {
   const referer = req.headers.referer || '';
 
   // 1. Origin verification when origin is supplied
-  if (origin) {
-    const isAllowedOrigin = allowedOrigins.some(allowed => {
-      try {
-        return new URL(origin).origin === new URL(allowed).origin;
-      } catch {
-        return false;
-      }
+  if (origin && !isOriginAllowed(origin)) {
+    logAuditEvent({
+      eventType: AuditEventType.CSRF_VIOLATION,
+      actor: req.ip,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'BLOCKED',
+      details: { reason: 'Untrusted Origin header', origin, path: req.originalUrl }
     });
+    return ApiResponse.error(res, 'CSRF verification failed: Untrusted Origin.', null, 403);
+  }
 
-    if (!isAllowedOrigin) {
-      logAuditEvent({
-        eventType: AuditEventType.CSRF_VIOLATION,
-        actor: req.ip,
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        status: 'BLOCKED',
-        details: { reason: 'Untrusted Origin header', origin, path: req.originalUrl }
-      });
-      return ApiResponse.error(res, 'CSRF verification failed: Untrusted Origin.', null, 403);
+  // 2. Referer verification fallback if no origin header is provided
+  if (!origin && referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (!isOriginAllowed(refererOrigin)) {
+        return ApiResponse.error(res, 'CSRF verification failed: Untrusted Referer.', null, 403);
+      }
+    } catch {
+      // Ignore invalid URL parsing on referer
     }
   }
 
