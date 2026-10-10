@@ -7,24 +7,62 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const isProduction = process.env.NODE_ENV === 'production';
+// Validate strictly required security environment variables (Non-optional)
+function validateRequiredConfig() {
+  const missing = [];
 
-// Secure fallback generator for development only
-function getSecureDevSecret(envVarName) {
-  if (isProduction) {
-    throw new Error(
-      `[SECURITY FATAL] Missing required environment variable '${envVarName}' in production mode! Server startup aborted.`
-    );
+  const adminSecretKey = (process.env.ADMIN_SECRET_KEY || '').trim();
+  if (!adminSecretKey) {
+    missing.push('ADMIN_SECRET_KEY is required in your backend .env file.');
+  } else if (adminSecretKey.length < 32) {
+    missing.push(`ADMIN_SECRET_KEY must be at least 32 characters long (currently ${adminSecretKey.length} chars).`);
   }
-  const ephemeralKey = crypto.randomBytes(32).toString('hex');
-  console.warn(
-    `⚠️ [SECURITY NOTICE] '${envVarName}' is not defined. Using temporary ephemeral cryptographic key for development.`
-  );
-  return ephemeralKey;
+
+  const jwtSecret = (process.env.JWT_SECRET || '').trim();
+  if (!jwtSecret) {
+    missing.push('JWT_SECRET is required in your backend .env file for cryptographically signing admin tokens.');
+  } else if (jwtSecret.length < 32) {
+    missing.push(`JWT_SECRET must be at least 32 characters long (currently ${jwtSecret.length} chars).`);
+  }
+
+  const webhookSecret = (process.env.WEBHOOK_SECRET || '').trim();
+  if (!webhookSecret) {
+    missing.push('WEBHOOK_SECRET is required in your backend .env file for HMAC-SHA256 signature verification.');
+  } else if (webhookSecret.length < 32) {
+    missing.push(`WEBHOOK_SECRET must be at least 32 characters long (currently ${webhookSecret.length} chars).`);
+  }
+
+  const adminPasswordHash = (process.env.ADMIN_PASSWORD_HASH || '').trim();
+  const isBcrypt = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(adminPasswordHash);
+  if (!adminPasswordHash) {
+    missing.push('ADMIN_PASSWORD_HASH is required in your backend .env file (must be a valid bcrypt hash).');
+  } else if (!isBcrypt) {
+    missing.push('ADMIN_PASSWORD_HASH must be a valid bcrypt hash format (e.g. $2b$12$...).');
+  }
+
+  if (missing.length > 0) {
+    const errorBox = [
+      '',
+      '================================================================================',
+      '🚨 [CONFIG FATAL ERROR] Required Security Environment Variables Missing/Invalid',
+      '================================================================================',
+      ...missing.map((m) => `  • ${m}`),
+      '',
+      '  These variables are strictly required and cannot be omitted.',
+      '  Please verify your backend/.env matches backend/.env.example.',
+      '================================================================================',
+      '',
+    ].join('\n');
+    throw new Error(errorBox);
+  }
 }
 
-const adminSecretKey = process.env.ADMIN_SECRET_KEY || getSecureDevSecret('ADMIN_SECRET_KEY');
-const jwtSecret = process.env.JWT_SECRET || adminSecretKey;
+validateRequiredConfig();
+
+const adminSecretKey = process.env.ADMIN_SECRET_KEY.trim();
+const jwtSecret = process.env.JWT_SECRET.trim();
+const webhookSecret = process.env.WEBHOOK_SECRET.trim();
+const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH.trim();
 
 export const config = {
   port: parseInt(process.env.PORT, 10) || 5000,
@@ -32,10 +70,9 @@ export const config = {
   clientUrl: (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, ''),
   adminSecretKey,
   jwtSecret,
-  // Admin credentials: prefer pre-hashed bcrypt password, or plaintext password from env
-  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
+  adminPasswordHash,
   adminPassword: process.env.ADMIN_PASSWORD || process.env.ADMIN_ACCESS_TOKEN || '',
-  webhookSecret: process.env.WEBHOOK_SECRET || adminSecretKey,
+  webhookSecret,
   imagekit: {
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
     privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',

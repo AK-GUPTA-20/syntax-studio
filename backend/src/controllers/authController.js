@@ -26,11 +26,15 @@ export const adminLogin = async (req, res, next) => {
     // 1. Check against bcrypt hash if configured
     if (config.adminPasswordHash && isBcryptHash(config.adminPasswordHash)) {
       isAuthenticated = await comparePassword(password, config.adminPasswordHash);
-    } else if (config.adminPassword) {
-      // 2. Safe constant-time comparison against configured password
+    }
+
+    // 2. Safe constant-time fallback check against configured password token
+    if (!isAuthenticated && config.adminPassword) {
       isAuthenticated = safeCompare(password, config.adminPassword);
-    } else if (config.adminSecretKey) {
-      // 3. Fallback to secret key
+    }
+
+    // 3. Safe constant-time fallback check against admin secret key
+    if (!isAuthenticated && config.adminSecretKey) {
       isAuthenticated = safeCompare(password, config.adminSecretKey);
     }
 
